@@ -366,6 +366,7 @@ if __name__ == "__main__":
     timeout2 = args.timeout2
     max_loop = args.loop
 
+
     element_list = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 
                 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga','Ge', 'As', 
                 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 
@@ -462,6 +463,7 @@ if __name__ == "__main__":
     os.mkdir(global_save_path)
     for k,v in global_pairs_info.items():
         save_bond_length(k, v, global_save_path)
+
 
     #####################################################################################################################
     ######################################## THE MAIN PROCESS IN THE LOOP (AT MOST 20 LOOPS) ############################

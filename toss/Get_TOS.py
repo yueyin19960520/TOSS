@@ -30,11 +30,14 @@ import multiprocessing
 ##############################################################################################################################################################
 
 
-def get_Oxidation_States(m_id,i, atom_pool):
+def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_tolerance_list=[]):
+    if not server:
+        tolerance_list = valid_t_dict[m_id]
+    else:
+        tolerance_list = input_tolerance_list
 
     GFOS = GET_FOS()
     delta_X = 0.1
-    tolerance_list = valid_t_dict[m_id]
     corr_t = []
     ls = time.time()
         
@@ -42,9 +45,12 @@ def get_Oxidation_States(m_id,i, atom_pool):
         res = RESULT()
         res.mid = m_id
         TN = TUNE()
-        try:
-        #if True:
-            GFOS.loss_loop(m_id, delta_X, t, tolerance_list, res)
+        #try:
+        if True:
+            if not server:
+                GFOS.loss_loop(m_id, delta_X, t, tolerance_list, res)
+            else:
+                res = GFOS.loss_loop(m_id, delta_X, t, tolerance_list, res=None, server=server, filepath=filepath)
             temp_pair_info = spider_pair_length_with_CN_unnorm(res.sum_of_valence, res)
 
             #now, the matched dict is the global normalization normed dict. 
@@ -100,13 +106,12 @@ def get_Oxidation_States(m_id,i, atom_pool):
             coef = 1.2
             loss_value = coef**N_spec * LOSS
             corr_t.append((t,loss_value,res))
-        except:
-        #else:
+        #except:
+        else:
             None
-
-    try:
-    #if True:
-
+    print(corr_t)
+    #try:
+    if True:
         chosen_one = sorted(corr_t, key = lambda x:x[1])[0]
         res = chosen_one[2]
         t = chosen_one[0]
@@ -125,15 +130,22 @@ def get_Oxidation_States(m_id,i, atom_pool):
         parameters = [m_id, normalized_single_result_info, single_result_dict, OS_result]
         tc = time.time() - ls
         print("Got the Formal Oxidation State of the %sth structure %s in %s seconds."%(i,m_id,tc))
-        print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
-        return parameters
-    except:
-    #else:
+        #print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
+        #return parameters
+    #except:
+    else:
         parameters = [m_id, None, None, None]
         tc = time.time() - ls
         print("Failed to analyze the %sth structure %s in %s seconds."%(i,m_id,tc))
+
+    if not server:
         print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         return parameters
+    else:
+        result = pd.DataFrame(np.vstack([np.array(res.elements_list),np.array(res.sum_of_valence),np.array(res.shell_CN_list)]))
+        result.index = ["Elements", "Valence","Coordination Number"]
+        return result
+        
 
 
 def assemble_OS(parameters):

@@ -473,16 +473,16 @@ class DIGEST():
                 Exclude_list = [[] for eml in range(len(res.idx))]
                 while len(operate_idx) != 0:
                     operate_idx, SHELL_idx_list,SHELL_idx_list_with_images,Exclude_list = contrast(operate_idx, 
-                                                                                      self.organic_patch, 
-                                                                                      fake_tolerance, 
-                                                                                      excluded_H_atom, 
-                                                                                      crystal_water_O,
-                                                                                      offset, 
-                                                                                      res, 
-                                                                                      SHELL_idx_list, 
-                                                                                      self.threshold_list,
-                                                                                      benchmark_SHELL_idx_list_with_images,
-                                                                                      Exclude_list)
+                                                                                                   self.organic_patch, 
+                                                                                                   fake_tolerance, 
+                                                                                                   excluded_H_atom, 
+                                                                                                   crystal_water_O,
+                                                                                                   offset, 
+                                                                                                   res, 
+                                                                                                   SHELL_idx_list, 
+                                                                                                   self.threshold_list,
+                                                                                                   benchmark_SHELL_idx_list_with_images,
+                                                                                                   Exclude_list)
                     offset += 1
                     #print("487")
                 benchmark_SHELL_idx_list_with_images = copy.deepcopy(SHELL_idx_list_with_images)

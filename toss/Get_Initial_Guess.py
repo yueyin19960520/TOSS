@@ -26,13 +26,18 @@ import multiprocessing
 
 
 ############## Functions for Get valid Tolerance ##############
-def get_the_valid_t(m_id,i):
+def get_the_valid_t(m_id,i, server=False, filepath="/"):
     res = RESULT()
     PS = PRE_SET(spider = False)
     res.dict_ele, res.matrix_of_threshold = PS.dict_ele, PS.matrix_of_threshold
     res.Forced_transfer_group,res.inorganic_group = PS.Forced_transfer_group,PS.inorganic_group
 
-    GS = GET_STRUCTURE(m_id)
+    if not server:
+        GS = GET_STRUCTURE(m_id)
+    else:
+        filepath, m_id = os.path.split(filepath)
+
+        GS = GET_STRUCTURE(m_id, specific_path="../toss_server/%s/"%filepath)
     res.sites,res.idx, res.struct = GS.sites, GS.idx, GS.struct
     res.matrix_of_length, res.valence_list, res.elements_list = GS.matrix_of_length, GS.valence_list, GS.elements_list
 
@@ -58,8 +63,12 @@ def get_the_valid_t(m_id,i):
         #else:
             None
 
-    print('This is the %sth structure with mid %s and we got %s different valid tolerance(s).'%(i, m_id, len(valid_t)))
-    return valid_t
+    if not server:
+        print('This is the %sth structure with mid %s and we got %s different valid tolerance(s).'%(i, m_id, len(valid_t)))
+        return valid_t
+    else:
+        print_info = 'The structure with mid %s has %s tolerance(s), which are %s.'%(m_id, len(valid_t), valid_t)
+        return print_info, valid_t
 
 
 def get_Initial_Guess(m_id, i):
