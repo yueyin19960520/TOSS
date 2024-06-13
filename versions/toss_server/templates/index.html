@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Structure</title>
+</head>
+<body>
+
+    <h1>Upload your structure file:</h1>
+
+    <form action="/" method="post" enctype="multipart/form-data">
+        <!-- File upload section -->
+        <input type="file" name="file">
+        <br>
+        <br>
+        <input type="submit" name="process_file" value="Upload and Process">
+    </form>
+
+    <!-- Display sites from uploaded file -->
+    {% if session.get('info') %}
+    <h2>Structure Valid Tolerances:</h2>
+    <p>{{ session['info'] }}</p>
+    <br>
+    {% endif %}
+
+    <h1>Calculate the Oxidation States of each atom:</h1>
+
+    <form action="/" method="post">
+        <!-- Enter a value for assembly -->
+        <input type="number" name="number_to_assemble" placeholder="tolerance value (1.1~1.25)" step="0.01" style="width: 300px;">
+        <br>
+        <br>
+        <input type="submit" name="initial_guess_action" value="Let's Guess">
+    </form>
+
+    <!-- Display assemble result -->
+    {% if session.get('init_result') %}
+    <h2>Result of Initial Guess:</h2>
+    {{ session['init_result']|safe }}
+    <br>
+    {% endif %}
+
+
+    <form action="/" method="post">
+        <!-- Enter a value for assembly -->
+        <input type="submit" name="loss_loop_action" value="Let's Loop!">
+    </form>
+
+    <!-- Display assemble result -->
+    {% if session.get('loop_result') %}
+    <h2>Result after Loss Loop:</h2>
+    {{ session['loop_result']|safe }}
+    <br>
+    {% endif %}
+
+    <style>
+        .dataframe {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .dataframe th, .dataframe td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+
+        .dataframe th {
+            background-color: #f2f2f2;
+        }
+    </style>
+
+
+</body>
+</html>

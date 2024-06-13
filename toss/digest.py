@@ -61,7 +61,7 @@ def find_crystal_water(tolerance,res):
     excluded_H_atom = []
     crystal_water_O = []
     for i in res.idx:
-        if get_ele_from_sites(i,res) in ["O"]: #if the NH3 will be considered, the ["O"] can be changed to ["O","N"]
+        if get_ele_from_sites(i,res) in ["C", "N", "O"]: #if the NH3 will be considered, the ["O"] can be changed to ["O","N"]
 
             list_of_length = res.matrix_of_length[i]
             temp_exclude_list = [] if round(min(list_of_length), 5) == round(list_of_length[i], 5) else [i]
@@ -111,7 +111,7 @@ def bonded_radius(i, organic_patch, tolerance, excluded_H_atom, crystal_water_O,
 
     #excluede the H atoms unless the center atom is Oxygen, and the list can be appended like "N","B".
     #it must be consistent with atom list in the find crystall water.
-    Exclude_idx += excluded_H_atom if get_ele_from_sites(i,res) not in ["O"] else []
+    Exclude_idx += excluded_H_atom if get_ele_from_sites(i,res) not in ["C", "N", "O"] else []
     Exclude_idx += crystal_water_O if get_ele_from_sites(i,res) not in ["H"] else []
 
     #the nearest atom cannot be excluded no matter what happened!
@@ -138,10 +138,10 @@ def bonded_radius(i, organic_patch, tolerance, excluded_H_atom, crystal_water_O,
 
       
     #the uniqueness of carbon in organic structure.              
-    if organic_patch and ele_c == "C":
-        tolerance = 1.2 * tolerance
-    else:
-        tolerance = tolerance
+    #if organic_patch and ele_c == "C":
+        #tolerance = 1.2 * tolerance
+    #else:
+        #tolerance = tolerance
 
     for i in range(offset):
         fine_list_of_length.remove(min(fine_list_of_length))
@@ -424,6 +424,8 @@ class DIGEST():
     def __init__(self, valid_t, tolerance, m_id, res):
 
         self.alloy_flag = True if CounterSubset(res.periodic_table.metals, list(set(res.elements_list))) else False
+        [res.dict_ele[ele].update({"X": res.dict_ele[ele]["X"] - 0.3}) for ele in ["Tc", "Os", "Pt"] if not self.alloy_flag]
+
         self.organic_patch = whether_organic_structure(res)
         self.max_oxi_list = [res.dict_ele[get_ele_from_sites(a,res)]["max_oxi"] for a in res.idx]
         self.min_oxi_list = [res.dict_ele[get_ele_from_sites(a,res)]["min_oxi"] for a in res.idx]

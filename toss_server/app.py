@@ -64,19 +64,13 @@ def index():
         sites_output = session.get('valid_t', [])
 
         if file_input and sites_output:
-            #try:
-                #result_loss_loop = loss_loop(entered_value, sites_output, file_input)  # Assuming the function loss_loop exists in app_func
-                #result_loop = LOOP(sites_output, file_input)
             result_loop = get_Oxidation_States(m_id=None,i=None, atom_pool="all", server=True, filepath=file_input,input_tolerance_list=sites_output)
             session['loop_result'] = result_loop.to_html(classes='dataframe')
-            #except Exception as e:
-                #session['loop_result'] = f"An error occurred: {e}"
         else:
             print(f"Missing data: {file_input}, {sites_output}")  # Print missing data for debugging
 
 
     return render_template('index.html', sites=session.get('info'), squared_value=squared_value)
-
 
 
 file_get= open("../global_normalized_normed_dict_loop_2.pkl","rb")

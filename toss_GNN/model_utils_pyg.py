@@ -50,7 +50,7 @@ class pyg_GraphConv(MessagePassing):
     def reset_parameters(self):
         super().reset_parameters()
         self.lin_rel.reset_parameters()
-        #self.lin_root.reset_parameters()
+        self.lin_root.reset_parameters()
 
     """
     def forward(self, x, edge_index):  #make it same as the DGL package algorithm
@@ -69,7 +69,7 @@ class pyg_GraphConv(MessagePassing):
         if x_r is not None:
             out = out + self.lin_root(x_r)
         return out
-    
+   
 
 class pyg_GCNLayer(torch.nn.Module):
     def __init__(self, in_feats, out_feats, activation,    

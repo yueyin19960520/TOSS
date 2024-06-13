@@ -10,14 +10,7 @@ import numpy as np
 import argparse
 
 from result import RESULT
-from pre_set import PRE_SET
-from digest import DIGEST
 from get_fos import GET_FOS
-from get_structure import GET_STRUCTURE
-from initialization import INITIAL
-from first_algo import FIRST_ALGO
-from second_algo import SECOND_ALGO
-from resonance import RESONANCE
 from tune import TUNE
 from post_process import *
 from auxilary import *
@@ -37,7 +30,8 @@ def cal_BVS(i, mid, path):
         print("Get the %s-th structre of the name %s."%(i, mid))
         valence_list = OS.get_valences(struct)
         print("Get the %s-th valences of the name %s successfully."%(i, mid))
-    except:
+    except Exception as e:
+        print(f"An error occurred: {e}")
         ele_list = list(map(lambda x:x.specie.name, struct.sites))
         if len(set(ele_list)) == 1:
             valence_list = [0] * len(ele_list)
@@ -97,7 +91,6 @@ def cal_TOSS_init(i, mid):
     alloy_flag = None
     for t in tolerance_list:
         try:
-        #if True:
             res = RESULT()
             GFOS = GET_FOS()
             GFOS.initial_guess(m_id = mid, delta_X = 0.1, tolerance = t, tolerance_list = tolerance_list, res = res)
@@ -113,9 +106,10 @@ def cal_TOSS_init(i, mid):
             sort_valence_list = sort_valence_by_elements(res.sum_of_valence, res.elements_list)
             result_candi.append((sort_valence_list, res.min_oxi_list, res.max_oxi_list, res.elements_list, class_with_idx, res.sum_of_valence))
             alloy_flag = res.alloy_flag
-        #else:
-        except:
-            None
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
     print("Get the %s-th valences of the name %s successfully."%(i, mid)) if result_candi != [] else print("Failed to get the %s-th structre of the name %s."%(i,mid))
     parameters = [mid,result_candi, alloy_flag, None]
     print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
@@ -132,7 +126,6 @@ def cal_TOSS_loop(i, m_id):
         res = RESULT()
         TN = TUNE()
         try:
-        #if True:
             GFOS.loss_loop(m_id, delta_X, t, tolerance_list, res)
             temp_pair_info = spider_pair_length_with_CN_unnorm(res.sum_of_valence, res)
 
@@ -177,15 +170,13 @@ def cal_TOSS_loop(i, m_id):
                 same_after_tunation = True
                 same_after_resonance = True
                 LOSS = loss
-                
-            #parameters = {m_id: [res.resonance_flag, same_after_tunation, same_after_resonance]}
             
             coef = 1.2
             loss_value = coef**N_spec * LOSS
             corr_t.append((t,loss_value,res))
-        except:
-        #else:
-            None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
     #print(len(corr_t))
     result_candi = []
     alloy_flag = None
@@ -277,10 +268,10 @@ def success_rate(valence_dict, my_valence_dict):
     f = 0 #break match number (smaller thoretically)
     F = 0 #break match number (larger thoretically)
     a = 0 #alloy number
-    B = 0 #exceed the bound number (larger thoretically)
     b = 0 #exceed the bound number (smaller thoretically)
-    P = 0 #classification is wrong
+    B = 0 #exceed the bound number (larger thoretically)
     p = 0 #classification is right, but the sum of electrons in each group is not same
+    P = 0 #classification is wrong
     w = 0 #why we are different
 
     for k,V in my_valence_dict.items(): #V == [result_candi, alloy_flag]
@@ -428,13 +419,12 @@ failed_structure = []
 stuked_structure = []
 
 target_group = os.listdir(path + "/structures")
-NP = 200000
 
 file_get = open(path + "/valid_t_dict.pkl",'rb')
 valid_t_dict = pickle.load(file_get)
 file_get.close() 
 
-structure_path = path + "/structures/"
+structure_path = path + "/structures/" 
 suffix  = "loop_" + str(max(list(map(int,list(map(lambda x:re.findall(".*loop_(.*).pkl(.*)",x)[0][0], list(filter(lambda x:"loop_" in x,os.listdir(path)))))))))
 
 
@@ -490,71 +480,72 @@ if __name__ == "__main__":
     target_group = list(valence_dict.keys())
     work_list = cut_the_work_list(target_group, NP) 
 
-    for inner_func in ["TUNE", "INIT"]:
-        my_valence_dict = {}
-        failed_structure = []
-        stuked_structure = []
-        graphs_dict = {}
+    #for inner_func in ["TUNE"]:
+    my_valence_dict = {}
+    failed_structure = []
+    stuked_structure = []
+    graphs_dict = {}
 
-        if inner_func == "TUNE":
-            for idx_of_list, sub_work_list in enumerate(work_list):
-                pool = multiprocessing.Pool(n)
-                for i, mid in enumerate(sub_work_list):
-                    abortable_func = partial(abortable_worker, cal_TOSS_loop, timeout=primary_limit_time)
-                    pool.apply_async(abortable_func, args = (i,mid,), callback = assemble_TOSS)
-                pool.close()
-                pool.join()
-        else:
-            for idx_of_list, sub_work_list in enumerate(work_list):
-                pool = multiprocessing.Pool(n)
-                for i, mid in enumerate(sub_work_list):
-                    abortable_func = partial(abortable_worker, cal_TOSS_init, timeout=secondary_limit_time)
-                    pool.apply_async(abortable_func, args = (i,mid,), callback = assemble_TOSS)
-                pool.close()
-                pool.join()
-
-        print("FINISHED THE YUE RESULT CALCULATION!")
-
-        s,f,F,a,B,b,P,p,w, alloy, break_match, exceed, seperation,ORE,possible_tune = success_rate(valence_dict, my_valence_dict)
-        A = s + F + a + B + P + p + w
-
-        with open(path + "/BVS_result.txt", "a+") as f:
-            f.write("%s:\n"%inner_func)
-            f.write("The BVS got %s results.\n"%len(valence_dict))
-            f.write("This program got %s results.\n"%len(my_valence_dict))
-            f.write("The have %s structures' results matched!\n"%s)
-            f.write("%s BVS structures's result break the criterion of symmetry!\n"%F)
-            f.write("%s structures are alloy structures.\n"%a)
-            f.write("%s BVS structures's result exceed the upper or lower bound of the oxidation state!\n"%B)
-            f.write("%s seperations of the link-atom and super-atom are different!\n"%P)
-            f.write("%s oxidation and reduction degree are different!\n"%p)
-            f.write("%s structures's result could be tuned by the loss function.\n"%w)
-            f.write("%s(%s) sturctures have been analysed the result.\n"%(A,round((A*100/len(my_valence_dict)),2)))
-            f.close()
-
-        try:
-            sent_message(value3 = "%s~%s~%s success rate!"%(round((s)/len(valence_dict) * 100, 2),
-                                                            round((A)/len(valence_dict) * 100, 2), 
-                                                            round((A)/len(my_valence_dict) * 100, 2)))
-        except:
-            None
+    #if inner_func == "TUNE":
+    for idx_of_list, sub_work_list in enumerate(work_list):
+        pool = multiprocessing.Pool(n)
+        for i, mid in enumerate(sub_work_list):
+            abortable_func = partial(abortable_worker, cal_TOSS_loop, timeout=primary_limit_time)
+            pool.apply_async(abortable_func, args = (i,mid,), callback = assemble_TOSS)
+        pool.close()
+        pool.join()
 
 
-        file_save = open(path + "/YUE_result_%s.pkl"%inner_func,'wb') 
-        pickle.dump(my_valence_dict, file_save) 
-        file_save.close()
+    print("FINISHED THE YUE RESULT CALCULATION!")
 
-        dismatch = {"ALLOY":alloy,
-                    "break_symmetry":break_match,
-                    "exceed_limit":exceed,
-                    "wrong_seperation":seperation,
-                    "OR_degree":ORE,
-                    "tunation_candi":possible_tune}
+    s,f,F,a,B,b,P,p,w, alloy, break_match, exceed, seperation,ORE,possible_tune = success_rate(valence_dict, my_valence_dict)
+    A = s + F + a + B + P + p + w
 
-        file_save = open(path + "/dismatch_%s.pkl"%inner_func,'wb') 
-        pickle.dump(dismatch, file_save) 
-        file_save.close()
+    with open(path + "/BVS_result.txt", "a+") as f:
+        f.write("%s:\n"%inner_func)
+        f.write("The BVS got %s results.\n"%len(valence_dict))
+        f.write("This program got %s results.\n"%len(my_valence_dict))
+        f.write("The have %s structures' results matched!\n"%s)
+        f.write("%s BVS structures's result break the criterion of symmetry!\n"%F)
+        f.write("%s structures are alloy structures.\n"%a)
+        f.write("%s BVS structures's result exceed the upper or lower bound of the oxidation state!\n"%B)
+        f.write("%s seperations of the link-atom and super-atom are different!\n"%P)
+        f.write("%s oxidation and reduction degree are different!\n"%p)
+        f.write("%s structures's result could be tuned by the loss function.\n"%w)
+        f.write("%s(%s) sturctures have been analysed the result.\n"%(A,round((A*100/len(my_valence_dict)),2)))
+        f.close()
 
+    try:
+        sent_message(value3 = "%s~%s~%s success rate!"%(round((s)/len(valence_dict) * 100, 2),
+                                                        round((A)/len(valence_dict) * 100, 2), 
+                                                        round((A)/len(my_valence_dict) * 100, 2)))
+    except:
+        print("Internet Connection Error!")
+
+
+    file_save = open(path + "/TOSS_result.pkl",'wb') 
+    pickle.dump(my_valence_dict, file_save) 
+    file_save.close()
+
+    dismatch = {"ALLOY":alloy,
+                "break_symmetry":break_match,
+                "exceed_limit":exceed,
+                "wrong_seperation":seperation,
+                "OR_degree":ORE,
+                "tunation_candi":possible_tune}
+
+    file_save = open(path + "/dismatch.pkl",'wb') 
+    pickle.dump(dismatch, file_save) 
+    file_save.close()
+
+    # Save a graph_dict for all the valid data.
+    file_save = open(path + "/TOSS_graphs_dict.pkl",'wb')
+    pickle.dump(graphs_dict, file_save) 
+    file_save.close()
+    TOSS_graphs_dict = copy.deepcopy(graphs_dict)
+
+
+    # Find the graphs that BVS and TOSS give the same result.
     cool = list(my_valence_dict.keys())
     hot = [j for i in [v for k,v in dismatch.items()] for j in i]
     target_group = list(set(cool).difference(set(hot)))
@@ -564,7 +555,9 @@ if __name__ == "__main__":
     for mid in none_value:
         del(graphs_dict[mid])
 
+    # Save the double check graphs_dict but without alloys.
     file_save = open(path + "/graphs_dict.pkl",'wb')
     pickle.dump(graphs_dict, file_save) 
     file_save.close()
+
 """END HERE"""

@@ -9,13 +9,6 @@ import pandas as pd
 
 from get_fos import GET_FOS
 from result import RESULT
-from pre_set import PRE_SET
-from digest import DIGEST
-from get_structure import GET_STRUCTURE
-from initialization import INITIAL
-from first_algo import FIRST_ALGO
-from second_algo import SECOND_ALGO
-from resonance import RESONANCE
 from tune import TUNE
 from post_process import *
 from auxilary import *
@@ -45,8 +38,7 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
         res = RESULT()
         res.mid = m_id
         TN = TUNE()
-        #try:
-        if True:
+        try:
             if not server:
                 GFOS.loss_loop(m_id, delta_X, t, tolerance_list, res)
             else:
@@ -82,15 +74,15 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
                     process_atom_idx_list = res.idx 
 
                 LOSS, LIKELYHOOD, PRIOR, res.final_vl = TN.tune_by_redox_in_certain_range_by_MAP(process_atom_idx_list, 
-                                                                              loss, 
-                                                                              likelyhood,
-                                                                              prior,
-                                                                              res.sum_of_valence,
-                                                                              0,
-                                                                              res,
-                                                                              global_normalized_normed_dict,
-                                                                              global_sigma_dict, 
-                                                                              global_mean_dict)
+                                                                                                 loss, 
+                                                                                                 likelyhood,
+                                                                                                 prior,
+                                                                                                 res.sum_of_valence,
+                                                                                                 0,
+                                                                                                 res,
+                                                                                                 global_normalized_normed_dict,
+                                                                                                 global_sigma_dict, 
+                                                                                                 global_mean_dict)
 
                 res.sum_of_valence = res.final_vl
                 same_after_tunation = True if res.final_vl == res.initial_vl else False
@@ -106,17 +98,15 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
             coef = 1.2
             loss_value = coef**N_spec * LOSS
             corr_t.append((t,loss_value,res))
-        #except:
-        else:
+        except Exception as e:
+            print(f"An error occurred: {e}")
             None
-    print(corr_t)
-    #try:
-    if True:
+
+    try:
         chosen_one = sorted(corr_t, key = lambda x:x[1])[0]
         res = chosen_one[2]
         t = chosen_one[0]
-        #parameters = [m_id, LOSS, res.final_vl]
-        #for loop
+
         temp_pair_info_normed = spider_pair_length_with_CN_normed(res)
         temp_pair_info = spider_bond_length(res)
 
@@ -124,6 +114,9 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
         single_result_dict = {t:temp_pair_info}
 
         OS_result_with_ele = sorted([(i,j) for i,j in zip(res.final_vl, res.elements_list)], key = lambda x :x[1])
+
+        assert all(map(lambda x:res.dict_ele[x[1]]["min_oxi"] <= x[0] <= res.dict_ele[x[1]]["max_oxi"], OS_result_with_ele))
+
         OS_result = [ij[0] for ij in OS_result_with_ele]
 
         normalized_single_result_info = normalization(single_result_dict_normed)
@@ -132,8 +125,8 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
         print("Got the Formal Oxidation State of the %sth structure %s in %s seconds."%(i,m_id,tc))
         #print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         #return parameters
-    #except:
-    else:
+    except Exception as e:
+        print(f"An error occurred: {e}")
         parameters = [m_id, None, None, None]
         tc = time.time() - ls
         print("Failed to analyze the %sth structure %s in %s seconds."%(i,m_id,tc))
@@ -196,15 +189,15 @@ pairs_info_dict = {}
 pairs_info_normed_dict = {}
 OS_result_dict = {}
 
-file_get= open(path + "/global_normalized_normed_dict.pkl","rb")
+file_get= open(path + "/global_normalized_normed_dict_loop_0.pkl","rb")
 global_normalized_normed_dict = pickle.load(file_get)
 file_get.close()
 
-file_get= open(path + "/global_mean_dict.pkl","rb")
+file_get= open(path + "/global_mean_dict_loop_0.pkl","rb")
 global_mean_dict = pickle.load(file_get)
 file_get.close()
 
-file_get= open(path + "/global_sigma_dict.pkl","rb")
+file_get= open(path + "/global_sigma_dict_loop_0.pkl","rb")
 global_sigma_dict = pickle.load(file_get)
 file_get.close()
 
@@ -214,7 +207,7 @@ file_get.close()
 
 target_group = os.listdir(os.path.join(path,"structures"))
 random.shuffle(target_group)
-NP = 200000
+NP = 600000
 
 ##########################################################################################################################
 ##########################################################################################################################
@@ -224,7 +217,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--ncore', type=int, required=True, help='Number of Parallel')
     parser.add_argument('-t1', '--timeout1', type=int, default=1800, help="The primary timeout seconds for each subprocess.")
-    parser.add_argument('-t2', '--timeout2', type=int, default=1800, help="The secondary timeout seconds for each subprocess.")
+    parser.add_argument('-t2', '--timeout2', type=int, default=600, help="The secondary timeout seconds for each subprocess.")
     args = parser.parse_args()
 
     start_time = time.time()
@@ -315,7 +308,7 @@ if __name__ == "__main__":
             rate = round(s/S,4)
 
             try:
-                sent_message(value3 = "atom_pool:%s; %s/%s=%s"%(atom_pool, s,S,rate))
+                sent_message(value3 = "atom_pool:%s; %s/%s=%s"%(atom_pool, s, S, rate))
             except:
                 None
                 
@@ -324,7 +317,7 @@ if __name__ == "__main__":
 
         if atom_pool == "all" and rate >= 0.99:
             break
-        elif abs(rate_list[-1] - rate) <= 0.005:
+        elif abs(rate_list[-1] - rate) <= 0.001:
             break
         else:
             loop = "loop_" + str(int(loop[-1])+1)

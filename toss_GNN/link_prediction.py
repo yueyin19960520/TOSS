@@ -132,7 +132,7 @@ def dgl_Hetero_train(model, data_loader, loss_func):
     roc_score = np.mean(train_matrix.roc_auc_score())
     prc_score = np.mean(train_matrix.roc_precision_recall_score()) 
     #abs_score = train_matrix.logistic_absolute_rate()*100
-    abs_score = 0.00#train_matrix.absolute_correct_rate()* 100
+    abs_score = train_matrix.absolute_correct_rate()* 100
     
     return roc_score, prc_score, abs_score, loss
 
@@ -212,7 +212,7 @@ def pyg_Hetero_train(model, data_loader, loss_func):
         prc_score = np.mean(train_matrix.roc_precision_recall_score()) 
     except:
         prc_score = 0
-    abs_score = 0.0 #train_matrix.absolute_correct_rate() *  100
+    abs_score = train_matrix.absolute_correct_rate() *  100
 
     return roc_score, prc_score, abs_score, loss
 
@@ -272,6 +272,7 @@ if __name__ == "__main__":
     raw_path = os.path.join(path, "raw")
     os.mkdir(raw_path) if not os.path.exists(raw_path) else None
     shutil.copy(os.path.join(path, "length_matrix_dict.pkl"), os.path.join(raw_path, "length_matrix_dict.pkl"))
+    shutil.copy(os.path.join(path, "graphs_dict.pkl"), os.path.join(raw_path, "graphs_dict.pkl"))
 
     processed_path = os.path.join(path, "processed")
     os.mkdir(processed_path) if not os.path.exists(processed_path) else None
@@ -390,9 +391,10 @@ if __name__ == "__main__":
     model_name = args.package.lower() + "_" + args.graph + "_" + args.model.upper() + "_" + args.size.lower()
     exec("model = %s"%model_name)
 
-
+    epochs = 200
     optimizer = torch.optim.Adam(model.parameters(), lr = 10 ** -3, weight_decay = 10 ** -4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=1e-4, eps=1e-8)
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=1e-4, eps=1e-8)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
     loss_func = BCEWithLogitsLoss() #should get the labels data!!!!
 
     f_name = os.path.join(model_path, "%s_%s.txt"%(model_name, date))
@@ -401,7 +403,7 @@ if __name__ == "__main__":
     print("Model Trainning...")
     parameter_space = sum(list(map(lambda x:model.state_dict()[x].reshape(-1,1).shape[0],list(model.state_dict().keys()))))
     print("The total number of parameters of the Model is %s"%parameter_space)
-    epochs = 300
+    
     best, patience = 0,0
     for epoch in range(epochs):
         s_time = time.time()
@@ -418,7 +420,7 @@ if __name__ == "__main__":
         e_time = time.time()
         cost = e_time-s_time
         cost = "%.2f"%cost
-        scheduler.step(loss)
+        scheduler.step()
 
         print("Epoch: %s, Cost: %s, tr_roc:%s, tr_prc:%s, tr_abs:%s, vl_roc:%s, vl_prc:%s, vl_abs:%s, te_roc:%s, te_prc:%s, te_abs:%s."
             %(epoch, cost, tr_roc, tr_prc, tr_abs, vl_roc, vl_prc, vl_abs, te_roc, te_prc, te_abs))

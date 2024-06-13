@@ -5,10 +5,9 @@ from result import RESULT
 from pre_set import PRE_SET
 from digest import DIGEST
 from get_structure import GET_STRUCTURE
-from initialization import INITIAL
-from first_algo import FIRST_ALGO
-from second_algo import SECOND_ALGO
+from polyhedron_algo import POLYHEDRON_ALGO
 from resonance import RESONANCE
+from initialization import *
 
 class GET_FOS():
 
@@ -66,24 +65,24 @@ class GET_FOS():
         res.original_min_oxi_list, \
         res.original_max_oxi_list = INT.bo_matrix, INT.print_covalent_status, INT.ori_bo_matrix, INT.covalent_pair, INT.original_min_oxi_list, INT.original_max_oxi_list 
         
-        FA = FIRST_ALGO(m_id, delta_X, tolerance, res)
+        LA = LOCAL_ALGO(m_id, delta_X, tolerance, res)
         res.inorganic_acid_flag, \
-        res.first_algorithm_flag = FA.inorganic_acid_flag, FA.first_algorithm_flag
+        res.first_algorithm_flag = LA.inorganic_acid_flag, LA.first_algorithm_flag
 
-        FA.apply_local_iter_method(res)
-        res.inorganic_acid_center_idx = FA.inorganic_acid_center_idx
+        LA.apply_local_iter_method(res)
+        res.inorganic_acid_center_idx = LA.inorganic_acid_center_idx
 
-        FA.apply_first_algo(delta_X,res)
+        LA.apply_local_algo(delta_X,res)
         
-        SA = SECOND_ALGO(delta_X, res)
+        PA = POLYHEDRON_ALGO(delta_X, res)
         res.ori_n,\
         res.ori_super_atom_idx_list,\
-        res.ori_sum_of_valence = SA.ori_n,SA.ori_super_atom_idx_list,SA.ori_sum_of_valence
+        res.ori_sum_of_valence = PA.ori_n,PA.ori_super_atom_idx_list,PA.ori_sum_of_valence
 
         res.sum_of_valence,\
         res.super_atom_idx_list,\
         res.link_atom_idx_list,\
-        res.single_atom_idx_list = SA.sum_of_valence,SA.super_atom_idx_list,SA.link_atom_idx_list,SA.single_atom_idx_list
+        res.single_atom_idx_list = PA.sum_of_valence,PA.super_atom_idx_list,PA.link_atom_idx_list,PA.single_atom_idx_list
 
         RSN = RESONANCE(res)
         res.resonance_flag, \
@@ -97,12 +96,12 @@ class GET_FOS():
 
             RSN.erase_bg_charge(res)
         if not server:
-            res.species_uni_list = SA.uniformity(res.sum_of_valence, res, res.idx)
+            res.species_uni_list = PA.uniformity(res.sum_of_valence, res, res.idx)
         else:
-            res.species_uni_list = SA.uniformity(res.sum_of_valence, res, res.idx)
+            res.species_uni_list = PA.uniformity(res.sum_of_valence, res, res.idx)
             result = pd.DataFrame(np.vstack([np.array(res.elements_list),np.array(res.sum_of_valence),np.array(res.shell_CN_list)]))
             result.index = ["Elements", "Valence","Coordination Number"]
-        return result
+            return result
 
 
     def loss_loop(self, m_id, delta_X, tolerance, tolerance_list, res, server=False, filepath="/"):
@@ -160,29 +159,29 @@ class GET_FOS():
         res.original_min_oxi_list, \
         res.original_max_oxi_list = INT.bo_matrix, INT.print_covalent_status, INT.ori_bo_matrix, INT.covalent_pair, INT.original_min_oxi_list, INT.original_max_oxi_list 
 
-        FA = FIRST_ALGO(m_id, delta_X, tolerance, res)
+        LA = LOCAL_ALGO(m_id, delta_X, tolerance, res)
         res.inorganic_acid_flag,\
-        res.first_algorithm_flag = FA.inorganic_acid_flag, FA.first_algorithm_flag
+        res.first_algorithm_flag = LA.inorganic_acid_flag, LA.first_algorithm_flag
 
-        FA.apply_local_iter_method(res)
-        res.inorganic_acid_center_idx = FA.inorganic_acid_center_idx
-        FA.apply_first_algo(delta_X,res)
+        LA.apply_local_iter_method(res)
+        res.inorganic_acid_center_idx = LA.inorganic_acid_center_idx
+        LA.apply_local_algo(delta_X,res)
 
-        SA = SECOND_ALGO(delta_X, res)
+        PA = POLYHEDRON_ALGO(delta_X, res)
         res.ori_n,\
         res.ori_super_atom_idx_list,\
-        res.ori_sum_of_valence = SA.ori_n,SA.ori_super_atom_idx_list,SA.ori_sum_of_valence
+        res.ori_sum_of_valence = PA.ori_n,PA.ori_super_atom_idx_list,PA.ori_sum_of_valence
 
         res.sum_of_valence,\
         res.super_atom_idx_list,\
         res.link_atom_idx_list,\
-        res.single_atom_idx_list = SA.sum_of_valence,SA.super_atom_idx_list,SA.link_atom_idx_list,SA.single_atom_idx_list
+        res.single_atom_idx_list = PA.sum_of_valence,PA.super_atom_idx_list,PA.link_atom_idx_list,PA.single_atom_idx_list
 
         RSN = RESONANCE(res)
         res.resonance_flag, \
         res.resonance_order = RSN.resonance_flag, RSN.resonance_order       
 
-        res.species_uni_list = SA.uniformity(res.sum_of_valence, res, res.super_atom_idx_list)
+        res.species_uni_list = PA.uniformity(res.sum_of_valence, res, res.super_atom_idx_list)
         if server:
             return res
         

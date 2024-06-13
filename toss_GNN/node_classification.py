@@ -355,11 +355,12 @@ if __name__ == "__main__":
 
     date = "%02d"%time.localtime()[1] + "%02d"%time.localtime()[2] 
 
+    epochs = 200
     loss_func = BCEWithLogitsLoss(reduction="none")
     optimizer = torch.optim.Adam(model.parameters(), lr=10 ** -3, weight_decay=10 ** -4)
     #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[4,16,48,80,100,120], gamma=0.1)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=1e-4, eps=1e-8)
-
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=1e-4, eps=1e-8)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
 
     #f_name = "/%s_%s.txt"%(model_name, date)
     f_name = os.path.join(model_path, "%s_%s.txt"%(model_name, date))
@@ -368,7 +369,7 @@ if __name__ == "__main__":
     print("Model Trainning...")
     parameter_space = sum(list(map(lambda x:model.state_dict()[x].reshape(-1,1).shape[0],list(model.state_dict().keys()))))
     print("The total number of parameters of the Model is %s"%parameter_space)
-    epochs = 300
+    
     best, patience = 0,0
     for epoch in range(epochs):
         s_time = time.time()
@@ -385,7 +386,7 @@ if __name__ == "__main__":
         e_time = time.time()
         cost = e_time-s_time
         cost = "%.2f"%cost
-        scheduler.step(loss)
+        scheduler.step()
         
         print("Epoch:%s,Cost:%ss. Train_Rate:%s, Validation_Rate:%s, Test_Rate:%s."%(epoch,cost,tr_abs,vl_abs,te_abs))
         with open(file=f_name,mode="a",encoding="utf-8") as f:

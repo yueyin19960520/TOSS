@@ -1,8 +1,6 @@
 from pymatgen.core.structure import IStructure
 from pymatgen.ext.matproj import MPRester
-#from ccdc.io import CrystalReader
 import re
-#from get_graphs import *
 import os
 
 path = os.path.split(os.path.abspath(os.path.dirname(__file__)))[0]
@@ -32,13 +30,13 @@ class GET_STRUCTURE():
         1 function: get_ele_from_sites()
     """
 
-    def __init__(self,m_id, specific_path=None):
+    def __init__(self,m_id, specific_path="D:/share/TOSS_2024/structures/"):
         try:
             if specific_path == None:
                 file = path + "/structures/" + str(m_id)
                 self.struct = IStructure.from_file(file)
             else:
-                file = specific_path + str(m_id)
+                file = os.path.join(specific_path,str(m_id))
                 self.struct = IStructure.from_file(file)
         except:
             raise NameError("Cannot find the structure! Check the name of the structure.")
@@ -59,4 +57,5 @@ class GET_STRUCTURE():
         for i in self.idx:
             ele = self.sites[i].specie.name
             self.elements_list.append(ele)
+
 """END HERE"""

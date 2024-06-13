@@ -1,4 +1,4 @@
-from second_algo import enu_permu_combi, enumerate_path, group_charge_transfer_by_path, get_the_operation_path_by_energy 
+from polyhedron_algo import *
 from digest import get_ele_from_sites
 from digest import get_propoteries_of_atom
 from post_process import *
@@ -45,6 +45,7 @@ def put_fake_charge_back_to_super_atom(N, atom_idx_list, vl, res):
         op_idx = sorted_idx_ip_env[0][0]
         vl[op_idx] -= 1
         N -= 1
+        # Here we can jump the valid OS list, because the resonance valence can be unnormal.
     return vl
 
 
@@ -58,6 +59,7 @@ def put_fake_charge_back_to_link_atom(N, atom_idx_list, vl, res):
         op_idx = sorted_idx_v_env_X[0][0]
         vl[op_idx] += 1
         N -= 1
+        # Same reason like before.
     return vl
 
 
@@ -93,129 +95,4 @@ class RESONANCE():
 		for pv in res.perfect_valence_list:
 			res.ori_sum_of_valence[pv[0]] = pv[1]
 		res.sum_of_valence = res.ori_sum_of_valence
-
-
-	def apply_resonance(self, atom_idx_list, LOSS, valence_list, res):
-		ori_LOSS = copy.deepcopy(LOSS)
-		classes_dict = classify(atom_idx_list)
-		valence_with_loss = []
-		for c in classes_dict:
-			for d in classes_dict:
-				if c[0] != d[0]:
-					op_c = classes_dict[c]
-					op_d = classes_dict[d]
-
-					now_valence_list_c = [valence_list[i] for i in op_c]
-					now_max_oxi_list_c = [res.max_oxi_list[i] for i in op_c]
-					now_min_oxi_list_c = [max(1,res.min_oxi_list[i]) for i in op_c]   #because they are the super atom!
-					now_valence_list_d = [valence_list[i] for i in op_d]
-					now_max_oxi_list_d = [res.max_oxi_list[i] for i in op_d]
-					now_min_oxi_list_d = [max(1,res.min_oxi_list[i]) for i in op_d]   #same reason.
-
-					if len(op_c) < len(op_d):
-						now_valence_list_c = [i + 1 for i in now_valence_list_c]
-						N = len(op_c)
-						while N != 0:
-							temp_list = sorted([(j, v) for j,v in enumerate(now_valence_list_d)], reverse = True, key = lambda x:x[1])
-							now_valence_list_d[temp_list[0][0]] -= 1
-							N -= 1
-							print("125")
-
-						target_valence = set(now_valence_list_d)
-						possible_combi = []
-						for p in itertools.combinations(op_d, len(op_c)):
-							possible_combi.append(p)
-
-						resonance = {"op_d": possible_combi, "target_valence":target_valence}
-
-					if len(op_c) > len(op_d):
-						now_valence_list_d = [j - 1 for j in now_valence_list_d]
-						N = len(op_d)
-						while N != 0:
-							temp_list = sorted([(i, v) for i,v in enumerate(now_valence_list_c)], reverse = False, key = lambda x:x[1])
-							now_valence_list_c[temp_list[0][0]] += 1
-							N -= 1
-							print("141")
-                        
-						target_valence = set(now_valence_list_c)
-						possible_combi = []
-						for p in itertools.combinations(op_c, len(op_d)):
-							possible_combi.append(p)
-
-						resonance = {"op_c": possible_combi,"target_valence":target_valence}
-                
-					if len(op_c) == len(op_d):
-						now_valence_list_c = [i + 1 for i in now_valence_list_c]
-						now_valence_list_d = [j - 1 for j in now_valence_list_d]
-
-					if all([now_max_oxi_list_c[i] >= now_valence_list_c[i] for i in range(len(op_c))]) and all(
-							[now_min_oxi_list_d[i] <= now_valence_list_d[i] for i in range(len(op_d))]):
-	
-						resonance_result = []
-						if list(resonance.keys())[0] == "op_d":
-							possible_valence_list = []
-							for p in resonance["op_d"]:
-								temp_sum_of_valence = copy.deepcopy(valence_list)
-								for i in op_c:
-									temp_sum_of_valence[i] += 1
-								for j in p:
-									temp_sum_of_valence[j] -= 1
-								if set([temp_sum_of_valence[i] for i in op_d]) == resonance["target_valence"]:
-									possible_valence_list.append(temp_sum_of_valence)                                         
-
-						if list(resonance.keys())[0] == "op_c":
-							possible_valence_list = []
-							for p in resonance["op_c"]:
-								temp_sum_of_valence = copy.deepcopy(valence_list)
-								for i in p:
-									temp_sum_of_valence[i] += 1
-								for j in op_d:
-									temp_sum_of_valence[j] -= 1
-								if set([temp_sum_of_valence[i] for i in op_c]) == resonance["target_valence"]:
-									possible_valence_list.append(temp_sum_of_valence)
-	
-						for vl in possible_valence_list:
-							temp_pair_info = spider_pair_length_with_CN_unnorm(res)
-							temp_LOSS = cal_loss_func_with_CN(temp_pair_info,res)
-							valence_with_loss.append((vl,temp_LOSS))
-
-					else:
-						valence_with_loss.append((valence_list,ori_LOSS))
-
-		return valence_with_loss
-
-
-	def tune_by_resonance(self, LOSS, res):
-		valence_with_loss = apply_resonance(res.super_atom_idx_list, res.sum_of_valence, LOSS)  #first run
-		check = {}
-
-		for vwl in valence_with_loss:
-			if str(sorted(vwl[0])) not in check:
-				check[str(sorted(vwl[0]))] = [vwl]
-			else:
-				if vwl not in check[str(sorted(vwl[0]))]:
-					check[str(sorted(vwl[0]))].append(vwl)
-
-		if res.resonance_order == "2":
-			for vwl in valence_with_loss:
-				prime_valence_with_loss = apply_resonance(res.super_atom_idx_list, vwl[0], vwl[1])
-				for p in prime_valence_with_loss:
-					if str(sorted(p[0])) not in check:
-						check[str(sorted(p[0]))] = [p]
-					else:
-						if p not in check[str(sorted(p[0]))]:
-							check[str(sorted(p[0]))].append(p)
-
-		possible_resonance = {}
-		for k,v in check.items():
-			avg_loss = sum(l[1] for l in v)/len(v)
-			possible_resonance[avg_loss] = v
-
-		key = sorted(possible_resonance.keys())[0]
-
-		the_resonance_result = possible_resonance[key]
-		avg_LOSS = sum([i[1] for i in the_resonance_result])/len(the_resonance_result)
-		#one_sum_of_valence = the_resonance_result[0][0]
-		resonance_valence_list = [i[0] for i in the_resonance_result]
-		return avg_LOSS, the_resonance_result
 """END HERE"""

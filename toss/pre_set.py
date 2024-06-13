@@ -51,12 +51,13 @@ class PRE_SET():
             #min_oxi = int(ele.min_oxidation_state)
             #max_oxi = int(ele.max_oxidation_state)
             min_oxi, max_oxi = min_max(dict_min_max[k])
+            oxi_list = valid_OS(dict_min_max[k])
             
             if min_oxi >= 0:
                 min_oxi = 0
             if max_oxi <= 0:
                 max_oxi = 0
-            oxi_list = [oxi for oxi in range(min_oxi, max_oxi+1)]
+            # oxi_list = [oxi for oxi in range(min_oxi, max_oxi+1)]   ### Change it to the valid OS ###
             
             list_IP = openexcel[k].values.tolist()
             dict_temp = {'symbol':symbol, 'covalent_radius':covalent_radius, 'min_oxi':min_oxi, 'max_oxi':max_oxi, 'oxi_list':oxi_list, 'X':X, 'IP':list_IP, 'second_covalent_radius':second_covalent_radius, 'third_covalent_radius':third_covalent_radius}
@@ -122,6 +123,7 @@ def CounterSubset(mom,son):
             return False
     return True
 
+
 def min_max(alist):
     nlist = []
     for i in alist:
@@ -133,6 +135,17 @@ def min_max(alist):
     MIN = min(min(nlist),0)
     MAX = max(max(nlist),0)
     return MIN,MAX
+
+
+def valid_OS(alist):
+    nlist = []
+    for i in alist:
+        try:
+            nlist.append(int(i))
+        except:
+            None
+    nlist.append(0) if nlist == [] else None
+    return sorted(nlist)
 """END HERE"""
 
 

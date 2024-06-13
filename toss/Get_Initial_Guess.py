@@ -12,11 +12,6 @@ from result import RESULT
 from pre_set import PRE_SET
 from digest import DIGEST
 from get_structure import GET_STRUCTURE
-from initialization import INITIAL
-from first_algo import FIRST_ALGO
-from second_algo import SECOND_ALGO
-from resonance import RESONANCE
-from tune import TUNE
 from post_process import *
 from auxilary import *
 
@@ -46,7 +41,6 @@ def get_the_valid_t(m_id,i, server=False, filepath="/"):
 
     for t in [round(1.1 + 0.01 * i,2) for i in range(16)]:
         try:
-        #if True:
             DG = DIGEST(valid_t, t, m_id, res)
             res.max_oxi_list, res.min_oxi_list = DG.max_oxi_list, DG.min_oxi_list
             res.SHELL_idx_list, res.threshold_list = DG.SHELL_idx_list, DG.threshold_list
@@ -59,8 +53,8 @@ def get_the_valid_t(m_id,i, server=False, filepath="/"):
                 valid_t.append(t)
             else:
                 None
-        except:
-        #else:
+        except Exception as e:  
+            print(f"An error occurred: {e}")
             None
 
     if not server:
@@ -71,19 +65,43 @@ def get_the_valid_t(m_id,i, server=False, filepath="/"):
         return print_info, valid_t
 
 
+def tolerance_corr(func, m_id, delta_X, tolerance_list):
+    tolerance_trial = tolerance_list
+    single_result_dict_normed = {}
+    single_result_dict = {}
+    single_super_point_dict = {}
+    for t in tolerance_trial:
+        try:
+            res = RESULT()
+            res.mid = m_id
+            func(m_id, delta_X, t, tolerance_list, res)
+            temp_pair_info_normed = spider_pair_length_with_CN_normed(res)
+            temp_pair_info = spider_bond_length(res)
+            single_result_dict[t] = temp_pair_info
+            single_result_dict_normed[t] = temp_pair_info_normed
+            super_point_list = [[get_ele_from_sites(i,res), sorted(res.shell_ele_list[i])] for i in res.idx]
+            single_super_point_dict[t] = super_point_list
+        except Exception as e:  
+            print(f"An error occurred: {e}")
+            LOSS = None
+            temp_pair_info = None
+            temp_pair_info_normed = None
+            super_point_list = None
+    return single_result_dict_normed, single_result_dict, single_super_point_dict #They could be empty.
+
+
 def get_Initial_Guess(m_id, i):
     GFOS = GET_FOS()
     delta_X = 0.1
 
-    tolerance_list = get_the_valid_t(m_id, i)      # tolerance_list = valid_t_dict[m_id]
+    tolerance_list = get_the_valid_t(m_id, i)      
 
     ls = time.time()
     try:
-    #if True:
         single_result_dict_normed, single_result_dict, single_super_point_dict = tolerance_corr(GFOS.initial_guess, 
-                                                                                         m_id, 
-                                                                                         delta_X, 
-                                                                                         tolerance_list)
+                                                                                                m_id, 
+                                                                                                delta_X, 
+                                                                                                tolerance_list)
 
         if single_result_dict_normed != {}:
             normalized_single_result_info = normalization(single_result_dict_normed)
@@ -94,8 +112,8 @@ def get_Initial_Guess(m_id, i):
         print("Got the Formal Oxidation State of the %sth structure %s in %s seconds."%(i,m_id,tc))
         print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         return parameters
-    except:
-    #else:
+    except Exception as e:   
+        print(f"An error occurred: {e}")
         parameters = [m_id, tolerance_list, None, None]
         tc = time.time() - ls
         print("Failed to analyze the %sth structure %s in %s seconds."%(i,m_id,tc))
@@ -149,12 +167,13 @@ failed_structure = []
 stuked_structure = []
 
 valid_t_dict = {}
+
 pairs_info_dict = {}
 pairs_info_normed_dict = {}
 
 target_group = os.listdir(os.path.join(path,"structures"))
 random.shuffle(target_group)
-NP = 200000
+NP = 600000
 
 ##########################################################################################################################
 ##########################################################################################################################
@@ -164,8 +183,8 @@ NP = 200000
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--ncore', type=int, required=True, help='Number of Parallel')
-    parser.add_argument('-t1', '--timeout1', type=int, default=180, help="The primary timeout seconds for each subprocess.")
-    parser.add_argument('-t2', '--timeout2', type=int, default=3000, help="The secondary timeout seconds for each subprocess.")
+    parser.add_argument('-t1', '--timeout1', type=int, default=3000, help="The primary timeout seconds for each subprocess.")
+    parser.add_argument('-t2', '--timeout2', type=int, default=180, help="The secondary timeout seconds for each subprocess.")
     args = parser.parse_args()
 
     start_time = time.time()
@@ -225,21 +244,21 @@ if __name__ == "__main__":
 
     global_normalized_normed_dict = global_normalization(pairs_info_normed_dict)
 
-    file_save = open(path + "/global_normalized_normed_dict.pkl",'wb') 
+    file_save = open(path + "/global_normalized_normed_dict_loop_0.pkl",'wb') 
     pickle.dump(global_normalized_normed_dict, file_save) 
     file_save.close()
 
     global_normalized_dict, global_sigma_dict, global_mean_dict = global_normalization_sigma_mean(pairs_info_dict)
 
-    file_save = open(path + "/global_normalized_dict.pkl",'wb') 
+    file_save = open(path + "/global_normalized_dict_loop_0.pkl",'wb') 
     pickle.dump(global_normalized_dict, file_save) 
     file_save.close()
 
-    file_save = open(path + "/global_sigma_dict.pkl",'wb') 
+    file_save = open(path + "/global_sigma_dict_loop_0.pkl",'wb') 
     pickle.dump(global_sigma_dict, file_save) 
     file_save.close()
 
-    file_save = open(path + "/global_mean_dict.pkl",'wb') 
+    file_save = open(path + "/global_mean_dict_loop_0.pkl",'wb') 
     pickle.dump(global_mean_dict, file_save) 
     file_save.close()
 

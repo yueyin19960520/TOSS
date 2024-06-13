@@ -14,10 +14,8 @@ from result import RESULT
 from pre_set import PRE_SET
 from digest import DIGEST
 from get_structure import GET_STRUCTURE
-from digest import get_ele_from_sites
 from post_process import *
-from spider_length import *
-from fitting import *
+from fitting_curves import *
 
 from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
@@ -64,8 +62,8 @@ def get_unique_tolerance(m_id,i):
                 species_list = [(i,j) for i,j in zip(res.elements_list, res.shell_env_list)]
                 num_of_species = len(set(species_list))
                 t_with_nos.append((t,num_of_species))
-        except:
-            None
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     min_num_of_species = min([n[1] for n in t_with_nos])
     unique_t = max([n[0] for n in t_with_nos if n[1] == min_num_of_species])
@@ -123,24 +121,6 @@ def get_length_matrix(mid, i):
     return parameters
 
 
-def assemble_LM(parameters):
-    global length_matrix_dict
-    global failed_structure
-    global stuked_structure
-
-    if parameters[1] != "RERUN":
-        if parameters[1] != None:
-            length_matrix_dict.update({parameters[0]: parameters[2]})
-        else:
-            failed_structure.append(parameters[0])
-    else:
-        stuked_structure.append(parameters[0])
-
-    finished_len = len(length_matrix_dict) + len(failed_structure) + len(stuked_structure)
-    print("Successed_Structure_Number:%s, Failed_Structure_Number:%s, Stucked_Structure_Number:%s"%(len(length_matrix_dict),len(failed_structure),len(stuked_structure)))
-    print("The process has finished %s/%s."%(finished_len, len(target_group)))
-
-
 def abortable_worker_LM(func, *args, **kwargs):
     timeout = kwargs.get('timeout', None)
     p = ThreadPool(1)
@@ -158,6 +138,23 @@ def abortable_worker_LM(func, *args, **kwargs):
         p.join()
     return out
 
+
+def assemble_LM(parameters):
+    global length_matrix_dict
+    global failed_structure
+    global stuked_structure
+
+    if parameters[1] != "RERUN":
+        if parameters[1] != None:
+            length_matrix_dict.update({parameters[0]: parameters[2]})
+        else:
+            failed_structure.append(parameters[0])
+    else:
+        stuked_structure.append(parameters[0])
+
+    finished_len = len(length_matrix_dict) + len(failed_structure) + len(stuked_structure)
+    print("Successed_Structure_Number:%s, Failed_Structure_Number:%s, Stucked_Structure_Number:%s"%(len(length_matrix_dict),len(failed_structure),len(stuked_structure)))
+    print("The process has finished %s/%s."%(finished_len, len(target_group)))
 
 
 ##############################################################################################################################################################
@@ -240,53 +237,39 @@ def save_final_threshold_matrix(fitting_info_dict, main_path):
     return None
 
 
-def check_convergence(all_result,threshold_data,list_of_PID):
-    if len(all_result) == 0:
-        for i in range(118):
-            for j in range(118):
-                if i>=j:
-                    if threshold_data[i][j] != 0:
-                        if (i,j) not in all_result:
-                            all_result[(i,j)] = [round(threshold_data[i][j], 3)]
 
-    else:
-        for i in range(118):
-            for j in range(118):
-                if (i,j) in all_result:
-                    all_result[(i,j)].append(round(threshold_data[i][j], 3))
-
-    con = 0
-    osc = 0
-    if len(list_of_PID) > 10:
-        for k,v in all_result.items():
-            if v[-1] == v[-2]:
-                con += 1
-            last = v.pop(-1)
-            if last in v:
-                osc += 1
-            v.append(last)
-    return con, osc, all_result
-
-
-def check_convergence_new(all_result, threshold_data, loop):
-    if len(all_result) == 0:
-        for i in range(118):
-            for j in range(118):
-                if i>=j:
-                    if threshold_data[i][j] != 0:
-                        if (i,j) not in all_result:
-                            all_result[(i,j)] = [round(threshold_data[i][j], 3)]
-
-    else:
-        for i in range(118):
-            for j in range(118):
-                if (i,j) in all_result:
-                    all_result[(i,j)].append(round(threshold_data[i][j], 3))
-
+def check_convergence(all_result, threshold_data, loop):
+    """
+    Check convergence based on updates in threshold data and loop count.
     
+    Parameters:
+        all_result (dict): Dictionary to store or update threshold results.
+        threshold_data (list of lists): 2D list with threshold values.
+        loop (int): Current iteration count to determine convergence checks.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if converged, 
+               plotting information as a dictionary, and the updated all_result.
+    """
+    # Update all_result based on the presence of data
+    if len(all_result) == 0: # First iteration where all_result is empty
+        for i in range(118):
+            for j in range(118):
+                if i>=j:
+                    if threshold_data[i][j] != 0:
+                        if (i,j) not in all_result:
+                            all_result[(i,j)] = [round(threshold_data[i][j], 3)]
+
+    else: # Subsequent iterations where all_result already contains data
+        for i in range(118):
+            for j in range(118):
+                if (i,j) in all_result:
+                    all_result[(i,j)].append(round(threshold_data[i][j], 3))
+
+    # Check for convergence if sufficient loops have occurred
     if loop > 3:
         plotting_info = get_plotting_info(all_result)
-        if len(plotting_info) > len(all_result) * 0.999:
+        if len(plotting_info) > len(all_result) * 0.995:
             converged = True
         else:
             converged = False
@@ -297,39 +280,72 @@ def check_convergence_new(all_result, threshold_data, loop):
     return converged, plotting_info, all_result
 
 
-def find_length(l, lp):
-    group = []
-    for i in range(0,len(l)-lp+1):
-        temp_l = []
-        for j in range(i,i+lp):
-            temp_l.append(l[j])
-        temp_l = tuple(temp_l)
-        group.append(temp_l)
-    flag = True
-    if len(set(group)) != len(group):
-        for i,p1 in enumerate(group):
-            for j,p2 in enumerate(group):
-                if flag:
-                    if j > i: 
-                        if p1 == p2:
-                            s2e = (i,j)
-                            flag = False
-    return s2e
+
+def find_length(sequence, max_sub_length):
+    """
+    Find the longest subsequence within the specified range that repeats immediately and continuously.
+    Returns the elements of the longest repeated subsequence along with the index of their first occurrence.
+
+    Parameters:
+    - sequence (list): The list in which to find the periodic subsequence.
+    - max_sub_length (int): The maximum length of the subsequence to test for immediate repetition.
+
+    Returns:
+    - list of tuples: Each tuple contains an element of the subsequence and its index in the sequence, or an empty list if no such subsequence is found.
+    """
+    longest_repetition = []
+
+    for sub_length in range(1, max_sub_length + 1):
+        if sub_length > len(sequence):
+            break
+
+        for i in range(len(sequence) - sub_length + 1):
+            subseq = tuple(sequence[i:i + sub_length])
+            next_index = i + sub_length
+
+            # Check if the subsequence repeats immediately after its current position
+            if next_index <= len(sequence) - sub_length and subseq == tuple(sequence[next_index:next_index + sub_length]):
+                # Collect repeated subsequences
+                repeated_subsequences = [subseq]
+                while (next_index <= len(sequence) - sub_length and
+                       subseq == tuple(sequence[next_index:next_index + sub_length])):
+                    repeated_subsequences.append(tuple(sequence[next_index:next_index + sub_length]))
+                    next_index += sub_length
+
+                if len(repeated_subsequences) > 1 and len(repeated_subsequences) > len(longest_repetition):
+                    # Store the longest sequence of elements with their original indices
+                    longest_repetition = [(element, i + idx) for idx, element in enumerate(subseq)]
+
+    return longest_repetition  # Return the longest repeating subsequence with indices
 
 
-def get_plotting_info(all_result):
+
+def get_plotting_info(all_results):
+    """
+    Processes a dictionary of results to extract plotting information by finding the index
+    of the maximum value between the first occurrences of duplicate subsequences in each list.
+
+    Parameters:
+    - all_results (dict): A dictionary where keys are tuples representing element pairs,
+                          and values are lists of numerical data.
+
+    Returns:
+    - dict: A dictionary where keys are tuples of element names and values are the index
+            of the maximum value in the sorted list of candidate values between duplicate subsequences.
+    """
     plotting_info = {}
-    for k,v in all_result.items():
+    for key, values in all_results.items():
         try:
-            s2e = find_length(v, 2)
-            candi = [(v[i], i) for i in range(s2e[0], s2e[1])]
-            scandi = sorted(candi, key = lambda x:x[0])
-            slt = scandi[-1][1]
-            plotting_info[(element_list[k[0]],element_list[k[1]])] = slt
-        except:
-            s2e = None
-    return plotting_info
+            start_end = find_length(values, 5)
+            if start_end:
+                sorted_candidates = sorted(start_end, key=lambda x: x[0])
+                max_index = sorted_candidates[-1][1]
+                element_pair = (element_list[key[0]], element_list[key[1]])
+                plotting_info[element_pair] = max_index
+        except Exception as e:
+            print(f"Error processing {key}: {e}")  # Optionally handle or log the error
 
+    return plotting_info
 
 
 ####################################################################################################
@@ -338,7 +354,7 @@ def get_plotting_info(all_result):
 path = os.path.split(os.path.abspath(os.path.dirname(__file__)))[0]
 target_group = os.listdir(path + "/structures/")
 
-NP = 200000
+NP = 600000
 save_intermediate_variable = True
 
 tolerance_dict = {}
@@ -348,9 +364,7 @@ stuked_structures = []
 length_matrix_dict = {}
 failed_structure = []
 stuked_structure = []
-####################################################################################################
-####################################################################################################
-####################################################################################################
+
 
 if __name__ == "__main__":
 
@@ -358,7 +372,7 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--ncore', type=int, required=True, help='Number of Parallel')
     parser.add_argument('-l', '--loop', type=int, default=20, help='max loop for Matrix of threshold.')
     parser.add_argument('-t1', '--timeout1', type=int, default=300, help="The primary timeout seconds for each subprocess.")
-    parser.add_argument('-t2', '--timeout2', type=int, default=1800, help="The secondary timeout seconds for each subprocess.")
+    parser.add_argument('-t2', '--timeout2', type=int, default=600, help="The secondary timeout seconds for each subprocess.")
     args = parser.parse_args()
 
     n = args.ncore
@@ -367,63 +381,73 @@ if __name__ == "__main__":
     max_loop = args.loop
 
 
-    element_list = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 
-                'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga','Ge', 'As', 
-                'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 
-                'Sn', 'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 
-                'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 
-                'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 
-                'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn', 'Nh',
-                'Fl', 'Mc', 'Lv', 'Ts', 'Og']
+    element_list = ['H' , 'He', 'Li', 'Be', 'B' , 'C' , 'N' , 'O' , 'F' , 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P' , 'S' , 'Cl', 'Ar', 
+                    'K' , 'Ca', 'Sc', 'Ti', 'V' , 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 
+                    'Rb', 'Sr', 'Y' , 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I' , 'Xe', 
+                    'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 
+                    'Hf', 'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 
+                    'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U' , 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr', 
+                    'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og']
 
-    work_list = cut_the_work_list(target_group, NP)
+    ######################################################################################################################
+    ###################### GENERATE THE GLOBAL TOLERANCE DICT FOR THRESHOLD DETERMINATION LOOP ###########################
+    ######################################################################################################################
 
-    print("This run contains %d structures."%len(target_group))
-    print("Main is processing......")
+    if not os.path.exists(path + "/global_tolerance_dict.pkl"):
+        work_list = cut_the_work_list(target_group, NP)
 
-    for idx_of_list, sub_work_list in enumerate(work_list):
+        print("This run contains %d structures."%len(target_group))
+        print("Main is processing......")
+
+        for idx_of_list, sub_work_list in enumerate(work_list):
+            pool = multiprocessing.Pool(n)
+            for i, mid in enumerate(sub_work_list):
+                abortable_func = partial(abortable_worker_unique_t, get_unique_tolerance, timeout=timeout1)
+                pool.apply_async(abortable_func, args = (mid,i,), callback = assemble_unique_t)
+            pool.close()
+            pool.join()
+
+        print("Main is done! But there still are some structures failed, let's do it again!")
+
+        rerun_structures = copy.deepcopy(stuked_structures)
+        stuked_structures = []
+
         pool = multiprocessing.Pool(n)
-        for i, mid in enumerate(sub_work_list):
-            abortable_func = partial(abortable_worker_unique_t, get_unique_tolerance, timeout=timeout1)
+        for i, mid in enumerate(rerun_structures):
+            abortable_func = partial(abortable_worker_unique_t, get_unique_tolerance, timeout=timeout2)
             pool.apply_async(abortable_func, args = (mid,i,), callback = assemble_unique_t)
         pool.close()
         pool.join()
 
-    print("Main is done! But there still are some structures failed, let's do it again!")
+        print("No matter how many failed, let us stop here and check the result!")
+        file_save = open(path + "/global_tolerance_dict.pkl",'wb') 
+        pickle.dump(tolerance_dict, file_save) 
+        file_save.close()
 
-    rerun_structures = copy.deepcopy(stuked_structures)
-    stuked_structures = []
+    ######################################################################################################################
+    #################################### GENERATE THE LENGTH MATRIX FOR LATER USE ########################################
+    ######################################################################################################################
 
-    pool = multiprocessing.Pool(n)
-    for i, mid in enumerate(rerun_structures):
-        abortable_func = partial(abortable_worker_unique_t, get_unique_tolerance, timeout=timeout2)
-        pool.apply_async(abortable_func, args = (mid,i,), callback = assemble_unique_t)
-    pool.close()
-    pool.join()
+    if not os.path.exists(path + "/length_matrix_dict.pkl"):
+        print("Secondary Main is processing......")
+        work_list = cut_the_work_list(target_group, NP)
+        
+        for idx_of_list, sub_work_list in enumerate(work_list):
+            pool = multiprocessing.Pool(n)
+            for i, mid in enumerate(sub_work_list):
+                abortable_func = partial(abortable_worker_LM, get_length_matrix, timeout=timeout1)
+                pool.apply_async(abortable_func, args = (mid,i,), callback = assemble_LM)
+            pool.close()
+            pool.join()
+        
 
-    print("No matter how many failed, let us stop here and check the result!")
-    file_save = open(path + "/global_tolerance_dict.pkl",'wb') 
-    pickle.dump(tolerance_dict, file_save) 
-    file_save.close()
+        print("ALL DONE!")
+        for k,v in length_matrix_dict.items():
+            np.fill_diagonal(v, 0)
 
-    print("Secondary Main is processing......")
-    
-    for idx_of_list, sub_work_list in enumerate(work_list):
-        pool = multiprocessing.Pool(n)
-        for i, mid in enumerate(sub_work_list):
-            abortable_func = partial(abortable_worker_LM, get_length_matrix, timeout=timeout1)
-            pool.apply_async(abortable_func, args = (mid,i,), callback = assemble_LM)
-        pool.close()
-        pool.join()
-    
-
-    print("ALL DONE!")
-    for k,v in length_matrix_dict.items():
-        np.fill_diagonal(v, 0)
-    file_save = open(path + "/length_matrix_dict.pkl",'wb') 
-    pickle.dump(length_matrix_dict, file_save) 
-    file_save.close()
-
+        file_save = open(path + "/length_matrix_dict.pkl",'wb') 
+        pickle.dump(length_matrix_dict, file_save) 
+        file_save.close()
 
     ######################################################################################################################
     ########################### INITIAL GUESS THE THRESHOLD AND SAVED THE INITIAL LOOPING ################################
@@ -437,163 +461,165 @@ if __name__ == "__main__":
     threshold_df = pd.DataFrame(data=temp_matrix,index=element_list,columns=element_list)
     threshold_df.to_csv(path + "/threshold_matrix_looping.csv")
 
-    work_list = cut_the_work_list(target_group, NP)
-
     ######################################################################################################################
     ########## SAVE THE GLOBAL FILES FOR LATER CHECK, ACTUALLY SHOULD SAVED A SET OF FILES AS GLOBAL INPUT ###############
     ######################################################################################################################
 
-    pair_info_dict = {}
-    for idx_of_list, sub_work_list in enumerate(work_list):
-        pool = multiprocessing.Pool(n)
-        for i, mid in enumerate(sub_work_list):
-            if mid in tolerance_dict:
-                t = tolerance_dict[mid]
-                abortable_func = partial(abortable_worker_MOT, Global_Spider, timeout=timeout1)
-                pool.apply_async(abortable_func, args = (mid,i, t), callback = assemble_length_data)
-        pool.close()
-        pool.join()
+    if not os.path.exists(path + "/global.pkl"):
+        work_list = cut_the_work_list(target_group, NP)
 
-    file_save = open(path + "/global.pkl",'wb') 
-    pickle.dump(pair_info_dict, file_save) 
-    file_save.close()
-    global_pairs_info = global_classify(pair_info_dict)
-
-    global_save_path = path + "/global_length_csv/"
-    os.mkdir(global_save_path)
-    for k,v in global_pairs_info.items():
-        save_bond_length(k, v, global_save_path)
-
-
-    #####################################################################################################################
-    ######################################## THE MAIN PROCESS IN THE LOOP (AT MOST 20 LOOPS) ############################
-    #####################################################################################################################
-    list_of_MOT = [] #record matrix of threshold.
-    list_of_PID = [] #record pairs info list.
-    all_result = {}
-
-    loop = 1
-    while loop < max_loop:
         pair_info_dict = {}
-        result_dict = {}
-
         for idx_of_list, sub_work_list in enumerate(work_list):
             pool = multiprocessing.Pool(n)
             for i, mid in enumerate(sub_work_list):
                 if mid in tolerance_dict:
                     t = tolerance_dict[mid]
-                    abortable_func = partial(abortable_worker_MOT, Spider, timeout=timeout1)
-                    pool.apply_async(abortable_func, args = (mid,i,t), callback = assemble_length_data)
+                    abortable_func = partial(abortable_worker_MOT, Global_Spider, timeout=timeout1)
+                    pool.apply_async(abortable_func, args = (mid,i, t), callback = assemble_length_data)
             pool.close()
             pool.join()
 
+        file_save = open(path + "/global.pkl",'wb') 
+        pickle.dump(pair_info_dict, file_save) 
+        file_save.close()
         global_pairs_info = global_classify(pair_info_dict)
-        list_of_PID.append(global_pairs_info)
 
-        matrix_of_threshold = np.array(pd.read_csv(path + "/threshold_matrix_looping.csv", header=0, index_col=0))
+        global_save_path = path + "/global_length_csv/"
+        os.mkdir(global_save_path)
+        for k,v in global_pairs_info.items():
+            save_bond_length(k, v, global_save_path)
 
-        pool = multiprocessing.Pool(n)
-        for i,ele1 in enumerate(element_list):
-            for j,ele2 in enumerate(element_list):
-                if i <= j:
-                    former_threshold = matrix_of_threshold[element_list.index(ele1)][element_list.index(ele2)]
-                    #abortable_func = partial(abortable_worker, get_bond_length_distribution_fitting_info, timeout=1800)
-                    if (ele1,ele2) in global_pairs_info or (ele2,ele1) in global_pairs_info:
-                        try:
-                            refined_data = global_pairs_info[(ele1,ele2)]
-                        except:
-                            refined_data = global_pairs_info[(ele2,ele1)]
-                        pool.apply_async(get_bond_length_distribution_fitting_info, 
-                            args = (ele1,ele2,former_threshold,refined_data, global_save_path), callback = assemble_looping_data)
-        pool.close()
-        pool.join()
+    #####################################################################################################################
+    ######################################## THE MAIN PROCESS IN THE LOOP (AT MOST 20 LOOPS) ############################
+    #####################################################################################################################
 
-        threshold_data = renew_threshold_matrix(result_dict, path)
+    if not os.path.exists(path + "/MOT.pkl"):
+        work_list = cut_the_work_list(target_group, NP)
+        list_of_MOT = [] #record matrix of threshold.
+        list_of_PID = [] #record pairs info dict.
+        all_result = {}
 
-        list_of_MOT.append(threshold_data)
+        loop = 1
+        while loop < max_loop:
+            pair_info_dict = {}
+            result_dict = {}
 
-        #con, osc, all_result = check_convergence(all_result,threshold_data,list_of_PID)
-        converged, plotting_info, all_result = check_convergence_new(all_result, threshold_data, loop)
+            for idx_of_list, sub_work_list in enumerate(work_list):
+                pool = multiprocessing.Pool(n)
+                for i, mid in enumerate(sub_work_list):
+                    if mid in tolerance_dict:
+                        t = tolerance_dict[mid]
+                        abortable_func = partial(abortable_worker_MOT, Spider, timeout=timeout1)
+                        pool.apply_async(abortable_func, args = (mid,i,t), callback = assemble_length_data)
+                pool.close()
+                pool.join()
 
-        if converged:
-            loop = 100
-            time.sleep(60)
-        else:
-            loop += 1
+            global_pairs_info = global_classify(pair_info_dict)
+            list_of_PID.append(global_pairs_info)
 
-    time.sleep(60)
-    
-    file_save = open(path + "/MOT.pkl",'wb') 
-    pickle.dump(list_of_MOT, file_save) 
-    file_save.close()
+            matrix_of_threshold = np.array(pd.read_csv(path + "/threshold_matrix_looping.csv", header=0, index_col=0))
 
-    file_save = open(path + "/PID.pkl",'wb') 
-    pickle.dump(list_of_PID, file_save) 
-    file_save.close()
+            pool = multiprocessing.Pool(n)
+            for i,ele1 in enumerate(element_list):
+                for j,ele2 in enumerate(element_list):
+                    if i <= j:
+                        former_threshold = matrix_of_threshold[element_list.index(ele1)][element_list.index(ele2)]
+                        if (ele1,ele2) in global_pairs_info or (ele2,ele1) in global_pairs_info:
+                            try:
+                                refined_data = global_pairs_info[(ele1,ele2)]
+                            except:
+                                refined_data = global_pairs_info[(ele2,ele1)]
+                            pool.apply_async(get_bond_length_distribution_fitting_info, 
+                                             args = (ele1,ele2,former_threshold,refined_data, global_save_path), 
+                                             callback = assemble_looping_data)
+            pool.close()
+            pool.join()
 
-    file_save = open(path + "/ALLRST.pkl",'wb') 
-    pickle.dump(all_result, file_save) 
-    file_save.close()
+            threshold_data = renew_threshold_matrix(result_dict, path)
 
-    file_save = open(path + "/plotting_info_dict.pkl",'wb')
-    pickle.dump(plotting_info, file_save)
-    file_save.close() 
+            list_of_MOT.append(threshold_data)
 
-    print("OUT of the LOOP, starting to generate csv and png data!")
+            converged, plotting_info, all_result = check_convergence(all_result, threshold_data, loop)
+
+            if converged:
+                loop = 100
+                time.sleep(60)
+            else:
+                loop += 1
+
+        time.sleep(60)
+        
+        file_save = open(path + "/MOT.pkl",'wb') 
+        pickle.dump(list_of_MOT, file_save) 
+        file_save.close()
+
+        file_save = open(path + "/PID.pkl",'wb') 
+        pickle.dump(list_of_PID, file_save) 
+        file_save.close()
+
+        file_save = open(path + "/ALLRST.pkl",'wb') 
+        pickle.dump(all_result, file_save) 
+        file_save.close()
+
+        file_save = open(path + "/plotting_info_dict.pkl",'wb')
+        pickle.dump(plotting_info, file_save)
+        file_save.close() 
+
+        print("OUT of the LOOP, starting to generate csv and png data!")
 
     #############################################################################################################
     ############################ SAVE THE VALID CSV AND PNG FILES IN THE PORPER LOOP ############################
     #############################################################################################################
-    #plotting_info = get_plotting_info(all_result)
 
-    csv_save_path = path + "/redefined_length_csv/"
-    png_save_path = path + "/redefined_length_png/"
-    os.mkdir(csv_save_path)
-    os.mkdir(png_save_path)
+    if not os.path.exists(path + "/fitting_info_dict.pkl"):
+        csv_save_path = path + "/redefined_length_csv/"
+        png_save_path = path + "/redefined_length_png/"
+        os.mkdir(csv_save_path)
+        os.mkdir(png_save_path)
 
-    refined_PID_and_MOT = {}
+        refined_PID_and_MOT = {}
 
-    for k,v in plotting_info.items():
-        try:
-            pair_name = (k[0], k[1])
-            length_list = list_of_PID[v][pair_name]
-            former_threshold = list_of_MOT[v-1][element_list.index(k[0])][element_list.index(k[1])]
-            refined_PID_and_MOT[pair_name] = (length_list,former_threshold)
-        except:
-            pair_name = (k[1], k[0])
-            length_list = list_of_PID[v][pair_name]
-            former_threshold = list_of_MOT[v-1][element_list.index(k[1])][element_list.index(k[0])]
-            refined_PID_and_MOT[pair_name] = (length_list,former_threshold)
-        save_bond_length(pair_name, length_list,csv_save_path)
+        for k,v in plotting_info.items():
+            try:
+                pair_name = (k[0], k[1])
+                length_list = list_of_PID[v][pair_name]
+                former_threshold = list_of_MOT[v-1][element_list.index(k[0])][element_list.index(k[1])]
+                refined_PID_and_MOT[pair_name] = (length_list,former_threshold)
+            except:
+                pair_name = (k[1], k[0])
+                length_list = list_of_PID[v][pair_name]
+                former_threshold = list_of_MOT[v-1][element_list.index(k[1])][element_list.index(k[0])]
+                refined_PID_and_MOT[pair_name] = (length_list,former_threshold)
+            save_bond_length(pair_name, length_list,csv_save_path)
 
-    file_save = open(path + "/refined_PID_and_MOT.pkl",'wb') 
-    pickle.dump(refined_PID_and_MOT, file_save) 
-    file_save.close()
+        file_save = open(path + "/refined_PID_and_MOT.pkl",'wb') 
+        pickle.dump(refined_PID_and_MOT, file_save) 
+        file_save.close()
 
-    target_group = [(k,v) for k,v in refined_PID_and_MOT.items()]
-    work_list = cut_the_work_list(target_group, 10)
+        target_group = [(k,v) for k,v in refined_PID_and_MOT.items()]
+        work_list = cut_the_work_list(target_group, 10)
 
-    fitting_info_dict = {}
-    for sub_work_list in work_list:
-        pool = Pool(n)
-        for work in sub_work_list:
-            ele1 = work[0][0]
-            ele2 = work[0][1]
-            former_threshold = work[1][1]
-            refined_data = work[1][0]
-            #abortable_func = partial(abortable_worker, bond_length_distribution_fitting, timeout=600)
-            pool.apply_async(bond_length_distribution_fitting, 
-                args = (ele1,ele2,former_threshold,refined_data,png_save_path,global_save_path), callback = assemble_final_data)
-        pool.close()
-        pool.join()
+        fitting_info_dict = {}
+        for sub_work_list in work_list:
+            pool = Pool(n)
+            for work in sub_work_list:
+                ele1 = work[0][0]
+                ele2 = work[0][1]
+                former_threshold = work[1][1]
+                refined_data = work[1][0]
+                pool.apply_async(bond_length_distribution_fitting, 
+                                 args = (ele1,ele2,former_threshold,refined_data,png_save_path,global_save_path), 
+                                 callback = assemble_final_data)
+            pool.close()
+            pool.join()
 
-    file_save = open(path + "/fitting_info_dict.pkl",'wb')
-    pickle.dump(fitting_info_dict, file_save)
-    file_save.close() 
+        file_save = open(path + "/fitting_info_dict.pkl",'wb')
+        pickle.dump(fitting_info_dict, file_save)
+        file_save.close() 
 
-    tm = pd.DataFrame(np.zeros((118,118)), columns=element_list, index = element_list)
-    for key in [((ele1, ele2),(i,j)) for i,ele1 in enumerate(element_list) for j,ele2 in enumerate(element_list)]:
-        if key[0] in fitting_info_dict:
-            tm.iloc[key[1][1]][key[1][0]] = fitting_info_dict[key[0]]["threshold"]
-            tm.iloc[key[1][0]][key[1][1]] = fitting_info_dict[key[0]]["threshold"]
-    tm.to_csv(path + "/threshold_matrix_looped.csv")
+        tm = pd.DataFrame(np.zeros((118,118)), columns=element_list, index = element_list)
+        for key in [((ele1, ele2),(i,j)) for i,ele1 in enumerate(element_list) for j,ele2 in enumerate(element_list)]:
+            if key[0] in fitting_info_dict:
+                tm.iloc[key[1][1]][key[1][0]] = fitting_info_dict[key[0]]["threshold"]
+                tm.iloc[key[1][0]][key[1][1]] = fitting_info_dict[key[0]]["threshold"]
+        tm.to_csv(path + "/threshold_matrix_looped.csv")

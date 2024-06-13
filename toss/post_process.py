@@ -5,31 +5,6 @@ import copy
 import math
 import numpy as np
 
-def tolerance_corr(func, m_id, delta_X, tolerance_list):
-	tolerance_trial = tolerance_list
-	single_result_dict_normed = {}
-	single_result_dict = {}
-	single_super_point_dict = {}
-	for t in tolerance_trial:
-		try:
-		#if True:
-			res = RESULT()
-			res.mid = m_id
-			func(m_id, delta_X, t, tolerance_list, res)
-			temp_pair_info_normed = spider_pair_length_with_CN_normed(res)
-			temp_pair_info = spider_bond_length(res)
-			single_result_dict[t] = temp_pair_info
-			single_result_dict_normed[t] = temp_pair_info_normed
-			super_point_list = [[get_ele_from_sites(i,res), sorted(res.shell_ele_list[i])] for i in res.idx]
-			single_super_point_dict[t] = super_point_list
-		except:
-		#else:
-			LOSS = None
-			temp_pair_info = None
-			temp_pair_info_normed = None
-			single_super_point_dict = None
-	return single_result_dict_normed, single_result_dict, single_super_point_dict #They could be empty.
-
 
 def spider_pair_length_with_CN_normed(res):
 	temp_pair_info = {}
@@ -80,6 +55,56 @@ def spider_pair_length_with_CN_normed(res):
 	for k,v in temp_pair_info.items():
 		for kk,vv in v.items():
 			temp_pair_info[k][kk] = (sum(vv)/len(vv), len(vv))
+	return temp_pair_info
+
+
+def spider_pair_length_with_CN_unnorm(valence_list, res):
+	temp_pair_info = {}
+	for i in res.idx:
+		length_list = res.matrix_of_length[i]
+		for j in res.shell_idx_list[i]:
+			ele_c = get_ele_from_sites(i,res)
+			ele_n = get_ele_from_sites(j,res)
+			v_c = str(valence_list[i])
+			v_n = str(valence_list[j])
+			CN_c = len(res.shell_ele_list[i])
+			CN_n = len(res.shell_ele_list[j])
+			SCN = CN_c + CN_n
+			
+			if res.periodic_table.elements_list.index(ele_c) < res.periodic_table.elements_list.index(ele_n):
+				pair_name = (ele_c, ele_n)
+				pair_CN = (CN_c, CN_n)
+				pair_OS = (v_c, v_n)
+			if res.periodic_table.elements_list.index(ele_c) > res.periodic_table.elements_list.index(ele_n):
+				pair_name = (ele_n, ele_c)
+				pair_CN = (CN_n, CN_c)
+				pair_OS = (v_n, v_c)
+			if res.periodic_table.elements_list.index(ele_c) == res.periodic_table.elements_list.index(ele_n):
+				if v_c <= v_n:
+					pair_name = (ele_c, ele_n)
+					pair_CN = (CN_c, CN_n)
+					pair_OS = (v_c, v_n)
+				else:
+					pair_name = (ele_n, ele_c)
+					pair_CN = (CN_n, CN_c)
+					pair_OS = (v_n, v_c)
+
+			CN_name = pair_CN
+			#CN_name = SCN
+			OS_name = pair_OS
+			label = (CN_name, OS_name)
+	
+			if pair_name not in temp_pair_info:
+				temp_pair_info[pair_name] = {}
+				if label not in temp_pair_info[pair_name]:
+					temp_pair_info[pair_name][label] = [length_list[j]]
+				else:
+					temp_pair_info[pair_name][label].append(length_list[j])
+			else:
+				if label not in temp_pair_info[pair_name]:
+					temp_pair_info[pair_name][label] = [length_list[j]]
+				else:
+					temp_pair_info[pair_name][label].append(length_list[j])
 	return temp_pair_info
 
 
@@ -156,54 +181,7 @@ def classify(atom_idx_list,res):
 	return classes_dict
 
 
-def spider_pair_length_with_CN_unnorm(valence_list, res):
-	temp_pair_info = {}
-	for i in res.idx:
-		length_list = res.matrix_of_length[i]
-		for j in res.shell_idx_list[i]:
-			ele_c = get_ele_from_sites(i,res)
-			ele_n = get_ele_from_sites(j,res)
-			v_c = str(valence_list[i])
-			v_n = str(valence_list[j])
-			CN_c = len(res.shell_ele_list[i])
-			CN_n = len(res.shell_ele_list[j])
-			SCN = CN_c + CN_n
-			
-			if res.periodic_table.elements_list.index(ele_c) < res.periodic_table.elements_list.index(ele_n):
-				pair_name = (ele_c, ele_n)
-				pair_CN = (CN_c, CN_n)
-				pair_OS = (v_c, v_n)
-			if res.periodic_table.elements_list.index(ele_c) > res.periodic_table.elements_list.index(ele_n):
-				pair_name = (ele_n, ele_c)
-				pair_CN = (CN_n, CN_c)
-				pair_OS = (v_n, v_c)
-			if res.periodic_table.elements_list.index(ele_c) == res.periodic_table.elements_list.index(ele_n):
-				if v_c <= v_n:
-					pair_name = (ele_c, ele_n)
-					pair_CN = (CN_c, CN_n)
-					pair_OS = (v_c, v_n)
-				else:
-					pair_name = (ele_n, ele_c)
-					pair_CN = (CN_n, CN_c)
-					pair_OS = (v_n, v_c)
 
-			CN_name = pair_CN
-			#CN_name = SCN
-			OS_name = pair_OS
-			label = (CN_name, OS_name)
-	
-			if pair_name not in temp_pair_info:
-				temp_pair_info[pair_name] = {}
-				if label not in temp_pair_info[pair_name]:
-					temp_pair_info[pair_name][label] = [length_list[j]]
-				else:
-					temp_pair_info[pair_name][label].append(length_list[j])
-			else:
-				if label not in temp_pair_info[pair_name]:
-					temp_pair_info[pair_name][label] = [length_list[j]]
-				else:
-					temp_pair_info[pair_name][label].append(length_list[j])
-	return temp_pair_info
 
 
 def cal_loss_func_by_OLS(temp_pair_info,pred_dict):
@@ -230,22 +208,6 @@ def cal_loss_func_by_OLS(temp_pair_info,pred_dict):
 
 	LOSS = loss/N * 10000
 	return LOSS
-
-
-def cut_the_work_list_prime(meet, N):
-    Npiece = N
-    piece_length = len(meet)//Npiece
-    work_list = []
-    lp = 0
-    rp = piece_length
-    while Npiece != 1:
-        work_list.append(meet[lp:rp])
-        lp += piece_length
-        rp += piece_length
-        Npiece -= 1
-    else:
-        work_list.append(meet[lp:len(meet)])
-    return work_list
 
 
 def cut_the_work_list(meet, piece_length):
@@ -346,10 +308,76 @@ def spider_bond_length(res):
 	return temp_pair_info
 
 
+def cal_loss_func_by_MLE(temp_pair_info,pred_dict, global_sigma_dict, global_mean_dict):
+	n = sum([len(vv) for v in temp_pair_info.values() for vv in v.values()])
+
+	likelyhood = 0
+
+	for pair_name,info in temp_pair_info.items():
+		#NL = sum([i[0] for i in useful_pair.values()])
+		if pair_name in pred_dict:
+			useful_pair = pred_dict[pair_name]
+			for label,length_list in info.items():
+
+				key = (pair_name, label[0], label[1])
+				try:
+					mean = round(global_mean_dict[key],3)
+					sigma = round(global_sigma_dict[key],3)
+					sigma = 0.01 if sigma == 0 else sigma
+				except Exception as e:
+					#print(f"An error occurred: {e}")
+					possible_keys = [k for k in global_mean_dict.keys() if k[0] == pair_name]
+					mean = np.mean([global_mean_dict[key] for key in possible_keys])
+					sigma = np.mean([global_sigma_dict[key] for key in possible_keys])
+
+				likelyhood_prime = 0
+				for l in length_list:
+					gx = (1/(np.sqrt(2*np.pi)*sigma)) * np.exp(-(round(l,3)-mean)**2/(2*sigma**2))
+					gx_den = gx * 0.001
+					math_domin_limit = 10**(-323.60)
+					gx_den = gx_den if gx_den > math_domin_limit else math_domin_limit
+					likelyhood_prime += math.log(gx_den)
+				likelyhood += likelyhood_prime
+		else:
+			raise ValueError("WRONG!")
+
+	avg_likelyhood = -1*(sum_likelyhood/n)
+	return avg_likelyhood
+
+
+def cal_loss_func_by_OLS(temp_pair_info,pred_dict, global_sigma_dict, global_mean_dict):
+	n = sum([len(vv) for v in temp_pair_info.values() for vv in v.values()])
+
+	OLS = 0
+
+	for pair_name,info in temp_pair_info.items():
+		#NL = sum([i[0] for i in useful_pair.values()])
+		if pair_name in pred_dict:
+			useful_pair = pred_dict[pair_name]
+			for label,length_list in info.items():
+				key = (pair_name, label[0], label[1])
+				try:
+					mean = round(global_mean_dict[key],3)
+				except Exception as e:
+					#print(f"An error occurred: {e}")
+					possible_keys = [k for k in global_mean_dict.keys() if k[0] == pair_name]
+					mean = np.mean([global_mean_dict[key] for key in possible_keys])
+
+				OLS_prime = 0
+				for l in length_list:
+					OLS_prime += (round(l,3)-mean)**2
+				OLS += OLS_prime
+		else:
+			raise ValueError("WRONG!")
+
+	OLS = OLS/n
+	return OLS
+
+
 def cal_loss_func_by_MAP(temp_pair_info,pred_dict, global_sigma_dict, global_mean_dict):
 	n = sum([len(vv) for v in temp_pair_info.values() for vv in v.values()])
 
-	sum_likelyhood = 0
+	likelyhood = 0
 	prior = 0
 
 	for pair_name,info in temp_pair_info.items():
@@ -358,48 +386,49 @@ def cal_loss_func_by_MAP(temp_pair_info,pred_dict, global_sigma_dict, global_mea
 			useful_pair = pred_dict[pair_name]
 			for label,length_list in info.items():
 
-				#it is the likelyhood calculation:
+				#it is the prior probability calculation:
 				NL = sum([v[1] for k,v in useful_pair.items() if k[0] == label[0]])
 				if NL == 0:
 					NL = sum([v[1] for k,v in useful_pair.items()])
 				try:
 					nl = useful_pair[label][1]
-				except:
+				except Exception as e:
+					#print(f"MAP prior calculation error: {e}")
 					nl = 1
-				likelyhood = len(length_list) * math.log(nl/NL)
-				sum_likelyhood += likelyhood
+				prior_prime = len(length_list) * math.log(nl/NL)
+				prior += prior_prime
 				#print("likelyhood:%s"%likelyhood)
 
-				#it is the prior probability calculation:
+				#it is the likelyhood calculation:
 				key = (pair_name, label[0], label[1])
 				try:
 					mean = round(global_mean_dict[key],3)
 					sigma = round(global_sigma_dict[key],3)
 					sigma = 0.01 if sigma == 0 else sigma
-				except:
+				except Exception as e:
+					#print(f"MAP likelyhood calculation error: {e}")
 					possible_keys = [k for k in global_mean_dict.keys() if k[0] == pair_name]
 					mean = np.mean([global_mean_dict[key] for key in possible_keys])
 					sigma = np.mean([global_sigma_dict[key] for key in possible_keys])
 
-				sub_prior = 0
+				likelyhood_prime = 0
 				for l in length_list:
 					gx = (1/(np.sqrt(2*np.pi)*sigma)) * np.exp(-(round(l,3)-mean)**2/(2*sigma**2))
 					gx_den = gx * 0.001
 					math_domin_limit = 10**(-323.60)
 					gx_den = gx_den if gx_den > math_domin_limit else math_domin_limit
-					sub_prior += math.log(gx_den)
-				prior += sub_prior
-				#print(key)
-				#print("prior:%s"%sub_prior)
+					likelyhood_prime += math.log(gx_den)
+				likelyhood += likelyhood_prime
+
 		else:
 			for label,length_list in info.items():
 				NL = 100000
 				nl = 1
-				likelyhood = len(length_list) * math.log(nl/NL)
-				sum_likelyhood += likelyhood
+				prior_prime = len(length_list) * math.log(nl/NL)
+				prior += prior_prime
 				raise ValueError("WRONG!")
 
-	avg_likelyhood = -1*(sum_likelyhood/n)
+	avg_likelyhood = -1*(likelyhood/n)
 	avg_prior = -1*(prior/n)
 	MAP = avg_likelyhood + avg_prior
 	#print("likelyhood: "+str(avg_likelyhood)+"   prior: "+str(avg_prior)+"   sum: "+str(avg_likelyhood+avg_prior))
@@ -587,31 +616,7 @@ def cal_loss_by_atom(res, vl, global_nomalized_dict):
 	return LOSS_list
 
 
-def cal_loss_func_by_MLE(temp_pair_info, pred_dict):
-	n = sum([len(vv) for v in temp_pair_info.values() for vv in v.values()])
 
-	sum_likelyhood = 0
-	for pair_name,info in temp_pair_info.items():
-		useful_pair = pred_dict[pair_name]
-		#NL = sum([i[0] for i in useful_pair.values()])
-		if pair_name in pred_dict:
-			for label,length_list in info.items():
-				NL = sum([v[1] for k,v in useful_pair.items() if k[0] == label[0]])
-				try:
-					nl = useful_pair[label][1]
-				except:
-					nl = 1
-				likelyhood = len(length_list) * math.log(nl/NL)
-				sum_likelyhood += likelyhood
-		else:
-			for label,length_list in info.items():
-				NL = 100000
-				nl = 1
-				likelyhood = len(length_list) * math.log(nl/NL)
-				sum_likelyhood += likelyhood
-
-	avg_likelyhood = sum_likelyhood/n
-	return avg_likelyhood
 """
 
 """
@@ -684,4 +689,21 @@ def leave_one_out(target_group, pairs_info_dict):
         else:
             None
     return global_matched_dict
+
+
+def cut_the_work_list_prime(meet, N):
+    Npiece = N
+    piece_length = len(meet)//Npiece
+    work_list = []
+    lp = 0
+    rp = piece_length
+    while Npiece != 1:
+        work_list.append(meet[lp:rp])
+        lp += piece_length
+        rp += piece_length
+        Npiece -= 1
+    else:
+        work_list.append(meet[lp:len(meet)])
+    return work_list
+
 """
