@@ -30,7 +30,7 @@ class GET_STRUCTURE():
         1 function: get_ele_from_sites()
     """
 
-    def __init__(self,m_id, specific_path="D:/share/TOSS_2024/structures/"):
+    def __init__(self,m_id, specific_path=None):
         try:
             if specific_path == None:
                 file = path + "/structures/" + str(m_id)
