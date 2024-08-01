@@ -181,7 +181,7 @@ class GET_FOS():
         res.resonance_flag, \
         res.resonance_order = RSN.resonance_flag, RSN.resonance_order       
 
-        res.species_uni_list = PA.uniformity(res.sum_of_valence, res, res.super_atom_idx_list)
+        res.species_uni_list = PA.uniformity(res.sum_of_valence, res, res.idx)
         if server:
             return res
         

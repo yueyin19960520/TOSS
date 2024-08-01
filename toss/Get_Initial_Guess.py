@@ -21,7 +21,7 @@ import multiprocessing
 
 
 ############## Functions for Get valid Tolerance ##############
-def get_the_valid_t(m_id,i, server=False, filepath="/"):
+def get_the_valid_t(m_id, i=0, server=False, filepath="/"):
     res = RESULT()
     PS = PRE_SET(spider = False)
     res.dict_ele, res.matrix_of_threshold = PS.dict_ele, PS.matrix_of_threshold
