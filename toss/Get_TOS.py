@@ -23,8 +23,9 @@ import multiprocessing
 ##############################################################################################################################################################
 
 
-def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_tolerance_list=[]):
-    if not server:
+def get_Oxidation_States(m_id, i=0, atom_pool="all", server=False, filepath="/", input_tolerance_list=[]):
+
+    if not server and input_tolerance_list == []:
         tolerance_list = valid_t_dict[m_id]
     else:
         tolerance_list = input_tolerance_list
@@ -120,14 +121,14 @@ def get_Oxidation_States(m_id,i, atom_pool, server=False, filepath="/", input_to
         OS_result = [ij[0] for ij in OS_result_with_ele]
 
         normalized_single_result_info = normalization(single_result_dict_normed)
-        parameters = [m_id, normalized_single_result_info, single_result_dict, OS_result]
+        parameters = [m_id, normalized_single_result_info, single_result_dict, OS_result, res]
         tc = time.time() - ls
         print("Got the Formal Oxidation State of the %sth structure %s in %s seconds."%(i,m_id,tc))
         #print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
         #return parameters
     except Exception as e:
         print(f"An error occurred: {e}")
-        parameters = [m_id, None, None, None]
+        parameters = [m_id, None, None, None, None]
         tc = time.time() - ls
         print("Failed to analyze the %sth structure %s in %s seconds."%(i,m_id,tc))
 
@@ -239,7 +240,6 @@ if __name__ == "__main__":
     print("This run contains %d structures."%len(target_group))
     print("Main is processing......")
     
-    atom_pool = "all"
     rate_list = [0.5]
 
     while True:
@@ -249,7 +249,7 @@ if __name__ == "__main__":
                 #parameters = get_Oxidation_States(m_id,i,atom_pool)
                 #assemble_OS(parameters)
                 abortable_func = partial(abortable_worker_OS, get_Oxidation_States, timeout=primary_limit_time)
-                pool.apply_async(abortable_func, args = (m_id,i,atom_pool), callback = assemble_OS)
+                pool.apply_async(abortable_func, args = (m_id,i,), callback = assemble_OS)
             pool.close()
             pool.join()
 
