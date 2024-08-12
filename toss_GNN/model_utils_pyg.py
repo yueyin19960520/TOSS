@@ -166,7 +166,8 @@ class pyg_GCNPredictor(torch.nn.Module):
         self.predict = pyg_MLPNodeClassificationPredictor(gnn_out_feats, predictor_hidden_feats, n_tasks, predictor_dropout)
 
     def forward(self, data):
-        x, edge_index, batch = data.x, data.edge_index, data.batch
+        #x, edge_index, batch = data.x, data.edge_index, data.batch
+        x, edge_index = data.x, data.edge_index
         node_feats = self.gnn(x, edge_index)
         predicted_feats = self.predict(node_feats)
         return predicted_feats
