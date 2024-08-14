@@ -5,7 +5,7 @@ Show result by the pre-trained model, and show it in 3D plot.
 
 ```python
 import sys
-sys.path.append("D:/share/TOSS/toss_GNN")
+sys.path.append("./toss_GNN")
 from data_utils import *
 from dataset_utils_pyg import *
 from model_utils_pyg import *
@@ -23,8 +23,8 @@ LP_model = pyg_Hetero_GCNPredictor(atom_feats=13, bond_feats=13, hidden_feats=[2
 NC_model = pyg_GCNPredictor(in_feats=15, hidden_feats=[256, 256, 256, 256], 
                             predictor_hidden_feats=64, n_tasks=12, predictor_dropout=0.3) 
 
-LP_model.load_state_dict(torch.load("../models/pyg_Hetero_GCN_s_0608.pth"))
-NC_model.load_state_dict(torch.load("../models/pyg_GCN_s_0609.pth"))
+LP_model.load_state_dict(torch.load("./models/pyg_Hetero_GCN_s_0608.pth"))
+NC_model.load_state_dict(torch.load("./models/pyg_GCN_s_0609.pth"))
 ```
 All keys matched successfully
 
@@ -53,7 +53,7 @@ import numpy as np
 import sys
 
 # Append TOSS path to system path
-sys.path.append("D:/share/TOSS/toss")
+sys.path.append("./toss")
 
 # Import package from TOSS
 from result import RESULT
