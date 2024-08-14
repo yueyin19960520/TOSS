@@ -1,3 +1,53 @@
+# TOSS
+
+Welcome to the TOSS repository! This repository contains the core codebase for TOSS, including traditional methods and Graph Neural Network (GNN) implementations.
+
+## Installation Instructions
+
+To get started with TOSS, follow the steps below:
+
+### 1. Set Up the Python Environment
+
+First, create a Python environment. We recommend using Python version 3.9.0 for compatibility. You can use `venv` or `conda` to create a new environment.
+
+```bash
+# Using venv
+python3.9 -m venv toss_env
+source toss_env/bin/activate
+
+# Using conda
+conda create -n toss_env python=3.9.0
+conda activate toss_env
+```
+
+### 2. Install Required Dependencies
+
+After activating your environment, install the necessary dependencies listed in the `requirements.txt` file. 
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run the Scripts
+
+Once the dependencies are installed, you can proceed to run the main scripts:
+
+- `run.py`: This script handles the initial setup and running of the traditional TOSS methods.
+- `train.py`: This script is used to train the GNN models.
+
+```bash
+# Run traditional TOSS methods
+python TOSS/toss/run.py
+
+# Train GNN models
+python TOSS/toss_gnn/train.py
+```
+
+## Repository Structure
+
+- `TOSS/toss/`: Contains the traditional TOSS methods and related scripts.
+- `TOSS/toss_gnn/`: Contains the code for training and evaluating Graph Neural Networks.
+
 ### Import Necessary Modules
 
 Show result by the pre-trained model, and show it in 3D plot.
