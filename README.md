@@ -46,7 +46,7 @@ python TOSS/toss_gnn/train.py
 - `TOSS/toss_gnn/`: Contains the code for training and evaluating Graph Neural Networks.
 
 ### 4. Use FeTiO3 as a Sample to Show Results
-### Use FeTiO3.cif as an Example (Fe3O4 can also be used as an example with mixed valence)
+- Use FeTiO3.cif as an Example (Fe3O4 can also be used as an example with mixed valence)
 
 ```python
 # Example CIF file
