@@ -46,17 +46,36 @@ python TOSS/toss_gnn/train.py
 - `TOSS/toss_gnn/`: Contains the code for training and evaluating Graph Neural Networks.
 
 ### 4. Use FeTiO3 as a Sample to Show Results
+### Use FeTiO3.cif as an Example (Fe3O4 can also be used as an example with mixed valence)
+
+```python
+# Example CIF file
+mid = "FeTiO3.cif"  # "Fe3O4.cif" or "Modified_Prussian_Blue.cif" can be used similarly
+# If you only want to check the sample, please make a directory, and move the cif files in it.
+```
+
 
 ### Import Necessary Modules
 
 Show results using the pre-trained model and display them in a 3D plot.
 
 ```python
+import pandas as pd
 import sys
-sys.path.append("./toss_GNN")
+sys.path.append("D:/share/TOSS/toss_GNN") 
 from data_utils import *
 from dataset_utils_pyg import *
 from model_utils_pyg import *
+from Predict import Get_OS_by_models
+from GNN_vis import VIS as GNN_VIS
+sys.path.append("D:/share/TOSS/toss")
+
+from result import RESULT
+from pre_set import PRE_SET
+from Get_Initial_Guess import get_the_valid_t
+from get_fos import GET_FOS
+from Get_TOS import get_Oxidation_State
+from TOSS_vis import VIS as TOSS_VIS
 ```
 
 ### Load Pre-trained Models
@@ -76,14 +95,21 @@ NC_model.load_state_dict(torch.load("./models/pyg_GCN_s_0609.pth"))
 
 All keys matched successfully.
 
+
+### Show the CN and OS result directly from raw cif file by models
+
+```python
+toss = Get_OS_by_models(mid, LP_model, NC_model)
+pred_res = toss.NC_predict()
+pd.DataFrame([pred_res["ele"], pred_res["os"], pred_res["cn"]], index=["Elements", "Valence", "Coordination Number"])
+```
+
 ### 3D Plotting for the Result
 
 ```python
-from LP_NC_Vis import vis_LP_from_cif
-vis = vis_LP_from_cif("FeTiO3.cif", LP_model, NC_model)
+vis = GNN_VIS(pred_res)
 vis.draw()
 vis.show_fig()
-vis.save_fig("pred_TiFeO3.html")
 ```
 
 [Visit the Predicted 3D plot on our webpage.](https://www.toss.science/example/pred_TiFeO3.html)
@@ -106,13 +132,6 @@ from get_fos import GET_FOS
 from Get_TOS import get_Oxidation_States
 ```
 
-### Use FeTiO3.cif as an Example (Fe3O4 can also be used as an example with mixed valence)
-
-```python
-# Example CIF file
-mid = "FeTiO3.cif"  # "Fe3O4.cif" or "Modified_Prussian_Blue.cif" can be used similarly
-# If you only want to check the sample, please make a directory, and move the cif files in it.
-```
 
 ### Get the Valid Tolerance List (Load and Digest the Structure)
 
@@ -154,9 +173,8 @@ It will show one 3D plot (no change) or two 3D plots for better visualization of
 
 ```python
 from visualization import VS
-vs = VS(RES,res,loss_ratio=10)
-vs.show_fig()
-vs.save_fig("true_TiFeO3.html")
+vis = TOSS_VIS(RES,res,loss_ratio=10)
+vis.show_fig()
 ```
 
 CNs are DIFFERENT! USE two figs!
