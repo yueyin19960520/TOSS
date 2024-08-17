@@ -32,7 +32,7 @@ def get_the_valid_t(m_id, i=0, server=False, filepath="/"):
     else:
         filepath, m_id = os.path.split(filepath)
 
-        GS = GET_STRUCTURE(m_id, specific_path="../toss_server/%s/"%filepath)
+        GS = GET_STRUCTURE(m_id, specific_path="./%s"%filepath)
     res.sites,res.idx, res.struct = GS.sites, GS.idx, GS.struct
     res.matrix_of_length, res.valence_list, res.elements_list = GS.matrix_of_length, GS.valence_list, GS.elements_list
 

@@ -190,25 +190,28 @@ pairs_info_dict = {}
 pairs_info_normed_dict = {}
 OS_result_dict = {}
 
-file_get= open(path + "/global_normalized_normed_dict_loop_0.pkl","rb")
-global_normalized_normed_dict = pickle.load(file_get)
-file_get.close()
+try:
+    file_get= open(path + "/global_normalized_normed_dict_loop_0.pkl","rb")
+    global_normalized_normed_dict = pickle.load(file_get)
+    file_get.close()
 
-file_get= open(path + "/global_mean_dict_loop_0.pkl","rb")
-global_mean_dict = pickle.load(file_get)
-file_get.close()
+    file_get= open(path + "/global_mean_dict_loop_0.pkl","rb")
+    global_mean_dict = pickle.load(file_get)
+    file_get.close()
 
-file_get= open(path + "/global_sigma_dict_loop_0.pkl","rb")
-global_sigma_dict = pickle.load(file_get)
-file_get.close()
+    file_get= open(path + "/global_sigma_dict_loop_0.pkl","rb")
+    global_sigma_dict = pickle.load(file_get)
+    file_get.close()
 
-file_get = open(path + "/valid_t_dict.pkl",'rb') 
-valid_t_dict = pickle.load(file_get) 
-file_get.close()
+    file_get = open(path + "/valid_t_dict.pkl",'rb') 
+    valid_t_dict = pickle.load(file_get) 
+    file_get.close()
 
-target_group = os.listdir(os.path.join(path,"structures"))
-random.shuffle(target_group)
-NP = 600000
+    target_group = os.listdir(os.path.join(path,"structures"))
+    random.shuffle(target_group)
+    NP = 600000
+except:
+    global_normalized_normed_dict, global_mean_dict, global_sigma_dict, valid_t_dict = None,None,None,None
 
 ##########################################################################################################################
 ##########################################################################################################################

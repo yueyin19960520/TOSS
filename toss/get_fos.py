@@ -27,7 +27,7 @@ class GET_FOS():
         if not server:
             GS = GET_STRUCTURE(m_id)
         else:
-            GS = GET_STRUCTURE(m_id, specific_path="../toss_server/%s/"%filepath)
+            GS = GET_STRUCTURE(m_id, specific_path="./%s"%filepath)
         res.sites,\
         res.idx, \
         res.struct = GS.sites, GS.idx, GS.struct
@@ -120,7 +120,7 @@ class GET_FOS():
         if not server:
             GS = GET_STRUCTURE(m_id)
         else:
-            GS = GET_STRUCTURE(m_id, specific_path="../toss_server/%s/"%filepath)
+            GS = GET_STRUCTURE(m_id, specific_path="./%s"%filepath)
         res.sites,\
         res.idx, \
         res.struct = GS.sites, GS.idx, GS.struct
