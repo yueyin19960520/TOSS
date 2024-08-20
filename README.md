@@ -179,3 +179,7 @@ vis.show_fig()
 
 CNs are DIFFERENT! USE two figs!
 [Visit the TOSS 3D plot on our webpage.](https://www.toss.science/example/true_TiFeO3.html)
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
