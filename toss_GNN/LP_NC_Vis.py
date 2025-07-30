@@ -34,7 +34,7 @@ class vis_LP_from_cif():
             'No': 2}
 
 
-    def _prepare_dict(self):
+    def prepare_dict(self):
         openexcel = pd.read_excel(self.preset_file, sheet_name = "Radii_X")
         dic_s = openexcel.set_index("symbol").to_dict()["single"]
         dic_d = openexcel.set_index("symbol").to_dict()["double"]
@@ -76,7 +76,7 @@ class vis_LP_from_cif():
             self.pre_set[ele]["IP"][os] = self.pre_set[ele]["IP"][os+1]-1
 
 
-    def _get_structure(self):
+    def get_structure(self):
         self.struct = IStructure.from_file(self.structure_file)
         self.length_matrix = self.struct.distance_matrix
 
@@ -86,7 +86,7 @@ class vis_LP_from_cif():
             self.length_matrix = self.struct.distance_matrix
 
 
-    def _build_graph_for_pred(self):
+    def build_data_for_LP(self):
         mat = []
         for i in self.struct.sites:
             ele = str(i.specie.name)
@@ -169,10 +169,10 @@ class vis_LP_from_cif():
                                                                             torch.from_numpy(np.arange(self.num_atoms, dtype='int64'))])
         self.data['bonds', 'interacts', 'bonds'].edge_index = torch.vstack([torch.from_numpy(bond_idx), torch.from_numpy(bond_idx)])
     
-    def _do_predict(self):
-        self._prepare_dict()
-        self._get_structure()
-        self._build_graph_for_pred()
+    def LP_predict(self):
+        self.prepare_dict()
+        self.get_structure()
+        self.build_data_for_LP()
         
         self.LP_model.eval()
         bonds_preds = self.LP_model(self.data)
@@ -234,7 +234,7 @@ class vis_LP_from_cif():
     def draw(self, atom_ratio=0.3):
         
         fig = go.Figure()
-        os_result = self.os_predict()
+        os_result = self.NC_predict()
 
         raw_info = []
         for i,s in enumerate(self.struct.sites):
@@ -327,8 +327,8 @@ class vis_LP_from_cif():
         else:
             return upper_dict["0"]
     
-    def os_predict(self):
-        self._do_predict()
+    def NC_predict(self):
+        self.LP_predict()
         self._apply_images()
         self.shell_CN_list = list(map(lambda x:len(x), self.plotting_coordinations))
         self.shell_idx_list = list(map(lambda x:list(map(lambda y:y[0], x)),self.plotting_coordinations))
